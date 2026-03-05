@@ -4,6 +4,48 @@
 
 ---
 
+## Repository Overview
+
+This is a **Claude Code plugin** (`fullstack-dev-skills@jeffallan`) providing 66 specialized skills across 12 domains, 9 project workflow commands, and 365+ reference files. Skills follow the [Agent Skills specification](https://agentskills.io/specification).
+
+### Directory Structure
+
+```
+claude-skills/
+├── skills/                  # 66 skill directories (SKILL.md + references/)
+├── commands/                # Workflow commands
+│   ├── common-ground/       # Context engineering command
+│   ├── intake/              # Codebase documentation commands
+│   └── project/             # Epic lifecycle (discovery → planning → execution → retrospectives)
+├── scripts/                 # Python tooling
+│   ├── update-docs.py       # Sync version.json counts to README, etc.
+│   ├── validate-skills.py   # YAML frontmatter & reference validation
+│   ├── validate-markdown.py # Markdown syntax validation
+│   └── migrate-frontmatter.py
+├── docs/                    # Extended documentation
+├── site/                    # Astro documentation site
+├── assets/                  # Social preview generation
+├── research/                # Design research and analysis
+├── specs/                   # Roadmap specifications
+├── version.json             # Single source of truth for version + counts
+├── SKILLS_GUIDE.md          # Full skill catalog and decision trees
+├── QUICKSTART.md            # Installation guide
+├── CONTRIBUTING.md          # Contributor guidelines
+├── MODELCLAUDE.md           # CLAUDE.md template for end users
+├── CHANGELOG.md             # Release history (Keep a Changelog format)
+├── Makefile                 # Development commands
+└── ruff.toml                # Python linter/formatter config
+```
+
+### Key Concepts
+
+- **Skills** live in `skills/<name>/SKILL.md` with optional `references/` subdirectory
+- **Commands** (workflows) live in `commands/` with YAML manifests and markdown bodies
+- **Progressive disclosure** keeps SKILL.md lean (~80-100 lines) with deep content in reference files
+- **version.json** is the single source of truth — `scripts/update-docs.py` propagates counts to all docs
+
+---
+
 ## Skill Authorship Standards
 
 Skills follow the [Agent Skills specification](https://agentskills.io/specification). This section covers project-specific conventions that go beyond the base spec.
@@ -111,6 +153,41 @@ Reference files for framework-specific skills must reflect the idiomatic best pr
 
 ---
 
+## Development Tooling
+
+### Makefile Commands
+
+| Command | Purpose |
+|---------|---------|
+| `make validate` | Run `validate-skills.py` + `update-docs.py --check` |
+| `make test` | Run `scripts/test-makefile.sh` |
+| `make lint` | Ruff check/format + Pyright on `scripts/`, Prettier on `site/` |
+| `make format` | Auto-fix lint issues (ruff + prettier) |
+| `make dev-link` | Symlink working copy into Claude Code plugin cache |
+| `make dev-unlink` | Restore plugin cache from backup |
+| `make site-dev` | Run Astro dev server for documentation site |
+| `make site-build` | Build Astro documentation site |
+
+### Python Tooling
+
+- **Python 3.11+** required (ruff target)
+- **ruff** for linting and formatting (`ruff.toml` config, line-length 120)
+- **pyright** for type checking (`pyrightconfig.json`)
+- All Python scripts live in `scripts/`
+
+### CI Pipeline
+
+CI runs on push/PR to `main` and `dev` branches (`.github/workflows/ci.yml` → `validate.yml`):
+
+1. **Validate Skills & Docs** — `validate-skills.py`, `validate-markdown.py --check`, `update-docs.py --check`
+2. **Lint & Format Check** — pre-commit hooks, Prettier on Astro files
+
+### Documentation Site
+
+An Astro site lives in `site/` with its own `package.json`. Uses Node.js 22, Prettier with `prettier-plugin-astro`.
+
+---
+
 ## Project Workflow
 
 ### When Creating New Skills
@@ -142,10 +219,10 @@ Version and counts are managed through `version.json`:
 
 ```json
 {
-  "version": "0.4.2",
-  "skillCount": 65,
+  "version": "0.4.9",
+  "skillCount": 66,
   "workflowCount": 9,
-  "referenceFileCount": 355
+  "referenceFileCount": 365
 }
 ```
 
@@ -274,6 +351,16 @@ After running validation, manually verify:
 # Check no old version references remain (except historical changelog)
 grep -r "OLD_VERSION" --include="*.md" --include="*.json" --include="*.html"
 ```
+
+---
+
+## Commit Message Convention
+
+- `Add:` for new features/skills
+- `Fix:` for bug fixes
+- `Update:` for improvements to existing content
+- `Docs:` for documentation changes
+- `Refactor:` for code restructuring
 
 ---
 
