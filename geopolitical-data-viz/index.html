@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geopolitical Data Visualization — Iran</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent2: #f472b6;
+      --accent3: #a78bfa;
+      --accent4: #34d399;
+      --danger: #ef4444;
+      --warn: #fbbf24;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    header {
+      text-align: center;
+      padding: 2rem 1rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    header h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.25rem; }
+    header p { color: var(--muted); font-size: 0.95rem; }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .controls button {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+
+    .controls button:hover { border-color: var(--accent); color: var(--accent); }
+    .controls button.active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+
+    .controls .projection-toggle {
+      border-color: var(--accent3);
+      color: var(--accent3);
+      margin-left: 1rem;
+    }
+    .controls .projection-toggle:hover { background: var(--accent3); color: var(--bg); }
+    .controls .projection-toggle.active { background: var(--accent3); color: var(--bg); border-color: var(--accent3); }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+      gap: 1.5rem;
+      padding: 1.5rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+
+    .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .card .subtitle { font-size: 0.8rem; color: var(--muted); margin-bottom: 1rem; }
+    .card canvas { width: 100% !important; }
+
+    .card.projection-card { border-color: var(--accent3); }
+    .card.projection-card h2::after {
+      content: 'SCENARIO MODEL';
+      font-size: 0.6rem;
+      background: var(--accent3);
+      color: var(--bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 8px;
+      vertical-align: middle;
+      font-weight: 700;
+    }
+
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      padding: 0 1.5rem;
+      max-width: 1400px;
+      margin: 0 auto 0.5rem;
+    }
+
+    .kpi {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      text-align: center;
+    }
+
+    .kpi .label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .kpi .value { font-size: 1.6rem; font-weight: 700; margin-top: 0.25rem; }
+    .kpi .change { font-size: 0.8rem; margin-top: 0.15rem; }
+    .kpi .change.up { color: var(--accent4); }
+    .kpi .change.down { color: var(--danger); }
+
+    .section-header {
+      max-width: 1400px;
+      margin: 1.5rem auto 0;
+      padding: 0 1.5rem;
+    }
+
+    .section-header h2 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .section-header .badge {
+      font-size: 0.65rem;
+      background: var(--accent3);
+      color: var(--bg);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .section-header p {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 0.25rem;
+    }
+
+    .scenario-selector {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 1rem 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .scenario-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 0.4rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .scenario-btn .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .scenario-btn.active { font-weight: 600; }
+    .scenario-btn[data-scenario="optimistic"] { color: var(--accent4); }
+    .scenario-btn[data-scenario="optimistic"] .dot { background: var(--accent4); }
+    .scenario-btn[data-scenario="optimistic"].active { border-color: var(--accent4); background: #34d39920; }
+
+    .scenario-btn[data-scenario="baseline"] { color: var(--warn); }
+    .scenario-btn[data-scenario="baseline"] .dot { background: var(--warn); }
+    .scenario-btn[data-scenario="baseline"].active { border-color: var(--warn); background: #fbbf2420; }
+
+    .scenario-btn[data-scenario="pessimistic"] { color: var(--danger); }
+    .scenario-btn[data-scenario="pessimistic"] .dot { background: var(--danger); }
+    .scenario-btn[data-scenario="pessimistic"].active { border-color: var(--danger); background: #ef444420; }
+
+    .projection-disclaimer {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 1.5rem 1rem;
+    }
+
+    .projection-disclaimer .box {
+      background: #fbbf2410;
+      border: 1px solid #fbbf2440;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.78rem;
+      color: var(--warn);
+    }
+
+    .timeline {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 1.5rem 2rem;
+    }
+
+    .timeline h2 { font-size: 1.1rem; margin-bottom: 1rem; }
+
+    .timeline-track {
+      position: relative;
+      padding-left: 1.5rem;
+      border-left: 2px solid var(--border);
+    }
+
+    .timeline-event {
+      position: relative;
+      margin-bottom: 1.25rem;
+      padding-left: 1rem;
+    }
+
+    .timeline-event::before {
+      content: '';
+      position: absolute;
+      left: -1.85rem;
+      top: 0.45rem;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .timeline-event.projected::before { background: var(--accent3); border: 2px dashed var(--accent3); }
+    .timeline-event .date { font-size: 0.75rem; color: var(--accent); font-weight: 600; }
+    .timeline-event.projected .date { color: var(--accent3); }
+    .timeline-event .desc { font-size: 0.85rem; color: var(--muted); }
+    .timeline-event .scenario-tag {
+      font-size: 0.65rem;
+      padding: 1px 5px;
+      border-radius: 3px;
+      margin-left: 4px;
+      font-weight: 600;
+    }
+
+    .disclaimer {
+      text-align: center;
+      padding: 1.5rem;
+      color: var(--muted);
+      font-size: 0.75rem;
+      border-top: 1px solid var(--border);
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    #projectionSection { display: none; }
+    #projectionSection.visible { display: block; }
+
+    @media (max-width: 600px) {
+      .dashboard { grid-template-columns: 1fr; padding: 1rem; }
+      .kpi-row { padding: 0 1rem; }
+      header h1 { font-size: 1.4rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Iran — Geopolitical Data Dashboard</h1>
+  <p>Public economic &amp; geopolitical indicators | Historical data &amp; scenario projections</p>
+</header>
+
+<div class="controls">
+  <button class="active" data-range="10y">10 Years</button>
+  <button data-range="5y">5 Years</button>
+  <button data-range="3y">3 Years</button>
+  <button data-range="all">All Data</button>
+  <button class="projection-toggle" id="projToggle">Show Projections (2025–2029)</button>
+</div>
+
+<div class="kpi-row">
+  <div class="kpi">
+    <div class="label">Oil Production (2024)</div>
+    <div class="value">3.2M</div>
+    <div class="change up">bbl/day</div>
+  </div>
+  <div class="kpi">
+    <div class="label">GDP (2024 est.)</div>
+    <div class="value">$403B</div>
+    <div class="change down">-1.2% from peak</div>
+  </div>
+  <div class="kpi">
+    <div class="label">Inflation (2024)</div>
+    <div class="value">40%</div>
+    <div class="change down">Year-over-year</div>
+  </div>
+  <div class="kpi">
+    <div class="label">Active Sanctions</div>
+    <div class="value">3,800+</div>
+    <div class="change">US, EU, UN designations</div>
+  </div>
+</div>
+
+<div class="dashboard">
+  <div class="card">
+    <h2>Crude Oil Production</h2>
+    <div class="subtitle">Million barrels per day — Source: OPEC / EIA estimates</div>
+    <canvas id="oilChart"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>GDP (Nominal, USD Billions)</h2>
+    <div class="subtitle">Source: World Bank / IMF estimates</div>
+    <canvas id="gdpChart"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>Inflation Rate (%)</h2>
+    <div class="subtitle">Annual consumer price inflation — Source: CBI / IMF</div>
+    <canvas id="inflationChart"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>IRR / USD Exchange Rate</h2>
+    <div class="subtitle">Iranian Rial per 1 USD (open market, thousands) — Source: Bonbast / market data</div>
+    <canvas id="currencyChart"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>Oil Export Revenue vs Sanctions Index</h2>
+    <div class="subtitle">Revenue in $B (left) vs cumulative sanctions score (right)</div>
+    <canvas id="sanctionsChart"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>Trade Volume — Top Partners</h2>
+    <div class="subtitle">Exports + Imports in $B — Source: UN Comtrade estimates</div>
+    <canvas id="tradeChart"></canvas>
+  </div>
+</div>
+
+<!-- ── PROJECTIONS SECTION ──────────────────────────────────────── -->
+<div id="projectionSection">
+  <div class="section-header">
+    <h2>Scenario Projections (2025–2029) <span class="badge">Illustrative Models</span></h2>
+    <p>Three scenarios based on different geopolitical assumptions. These are NOT predictions — they illustrate possible trajectories.</p>
+  </div>
+
+  <div class="projection-disclaimer">
+    <div class="box">
+      These projections are simplified scenario models for educational purposes only. They assume
+      linear or trend-based extrapolations under hypothetical conditions. Real-world outcomes depend on
+      complex, unpredictable geopolitical dynamics. Do not use for decision-making.
+    </div>
+  </div>
+
+  <div class="scenario-selector">
+    <button class="scenario-btn active" data-scenario="optimistic">
+      <span class="dot"></span> Optimistic — Diplomatic Resolution
+    </button>
+    <button class="scenario-btn active" data-scenario="baseline">
+      <span class="dot"></span> Baseline — Status Quo
+    </button>
+    <button class="scenario-btn active" data-scenario="pessimistic">
+      <span class="dot"></span> Pessimistic — Escalation
+    </button>
+  </div>
+
+  <div class="dashboard">
+    <div class="card projection-card">
+      <h2>Oil Production Projection</h2>
+      <div class="subtitle">Scenario trajectories for crude oil output (M bbl/day)</div>
+      <canvas id="oilProjChart"></canvas>
+    </div>
+
+    <div class="card projection-card">
+      <h2>GDP Projection</h2>
+      <div class="subtitle">Scenario trajectories for nominal GDP ($B)</div>
+      <canvas id="gdpProjChart"></canvas>
+    </div>
+
+    <div class="card projection-card">
+      <h2>Inflation Projection</h2>
+      <div class="subtitle">Scenario trajectories for annual inflation (%)</div>
+      <canvas id="inflationProjChart"></canvas>
+    </div>
+
+    <div class="card projection-card">
+      <h2>Currency Projection</h2>
+      <div class="subtitle">Scenario trajectories for IRR/USD (thousands)</div>
+      <canvas id="currencyProjChart"></canvas>
+    </div>
+  </div>
+
+  <div class="timeline" id="projTimeline">
+    <h2>Scenario Assumptions &amp; Hypothetical Events</h2>
+    <div class="timeline-track" id="projTimelineTrack"></div>
+  </div>
+</div>
+
+<!-- ── HISTORICAL TIMELINE ──────────────────────────────────────── -->
+<div class="timeline">
+  <h2>Key Events Timeline</h2>
+  <div class="timeline-track" id="timelineTrack"></div>
+</div>
+
+<div class="disclaimer">
+  <strong>Disclaimer:</strong> This dashboard uses publicly available historical data and estimates
+  from sources including the World Bank, IMF, EIA, OPEC, and UN Comtrade. Figures are approximate
+  and may differ from official government statistics. Projections are illustrative scenario models,
+  NOT forecasts. No investment or policy decisions should be based on this data.
+</div>
+
+<script>
+// ── HISTORICAL DATA ───────────────────────────────────────────────
+
+const DATA = {
+  years: [2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024],
+
+  oilProduction: [3.7, 3.6, 3.0, 2.7, 2.8, 2.8, 3.6, 3.8, 3.5, 2.4, 2.0, 2.4, 2.6, 3.0, 3.2],
+  gdp: [482, 576, 397, 368, 425, 385, 404, 430, 446, 250, 231, 359, 388, 401, 403],
+  inflation: [12.4, 21.5, 30.5, 34.7, 15.6, 11.9, 9.0, 9.6, 30.0, 41.0, 36.4, 40.2, 49.0, 42.0, 40.0],
+  irrPerUsd: [10.5, 12.3, 24.5, 27.0, 28.0, 30.0, 32.0, 38.0, 100.0, 130.0, 250.0, 280.0, 330.0, 480.0, 550.0],
+  oilRevenue: [73, 95, 63, 55, 53, 25, 41, 55, 50, 20, 12, 25, 35, 45, 50],
+  sanctionsIndex: [20, 25, 55, 65, 70, 40, 35, 35, 75, 85, 88, 85, 90, 88, 92],
+
+  tradePartners: {
+    labels: ['China', 'UAE', 'Turkey', 'India', 'Iraq', 'S. Korea', 'EU'],
+    data2015: [15.2, 8.1, 4.5, 5.6, 3.2, 6.1, 8.0],
+    data2020: [12.8, 5.0, 3.2, 2.1, 5.5, 0.5, 1.2],
+    data2024: [18.5, 7.2, 5.1, 1.8, 7.0, 0.3, 0.8],
+  },
+
+  events: [
+    { year: 2010, text: 'UN Security Council passes Resolution 1929 — expanded sanctions' },
+    { year: 2012, text: 'EU oil embargo takes effect; SWIFT disconnects Iranian banks' },
+    { year: 2013, text: 'Joint Plan of Action (interim nuclear deal) signed in Geneva' },
+    { year: 2015, text: 'JCPOA signed — nuclear deal lifts many sanctions' },
+    { year: 2016, text: 'Sanctions relief begins; oil exports ramp up significantly' },
+    { year: 2018, text: 'US withdraws from JCPOA; "maximum pressure" sanctions reimposed' },
+    { year: 2019, text: 'Oil exports drop to ~400k bbl/day; currency crisis deepens' },
+    { year: 2020, text: 'COVID-19 compounds economic pressure; Gen. Soleimani killed Jan 2020' },
+    { year: 2022, text: 'JCPOA revival talks stall; Mahsa Amini protests erupt nationwide' },
+    { year: 2023, text: 'Iran–Saudi Arabia détente brokered by China; oil exports recover' },
+    { year: 2024, text: 'Regional tensions escalate amid broader Middle East conflicts' },
+  ]
+};
+
+// ── PROJECTION DATA ───────────────────────────────────────────────
+// Three scenarios with different geopolitical assumptions
+
+const PROJECTIONS = {
+  years: [2024, 2025, 2026, 2027, 2028, 2029],
+
+  // Optimistic: Diplomatic breakthrough, partial sanctions relief, JCPOA successor
+  optimistic: {
+    label: 'Optimistic',
+    color: '#34d399',
+    assumptions: 'Diplomatic breakthrough leads to partial sanctions relief; new nuclear agreement framework; gradual reintegration into global markets',
+    oil:       [3.2, 3.5, 3.8, 4.0, 4.2, 4.3],
+    gdp:       [403, 430, 475, 520, 560, 600],
+    inflation: [40, 32, 24, 18, 14, 11],
+    currency:  [550, 480, 400, 340, 300, 270],
+    events: [
+      { year: 2025, text: 'New nuclear framework negotiations begin with P5+1' },
+      { year: 2026, text: 'Partial sanctions relief; banking channels reopened' },
+      { year: 2027, text: 'Oil exports return to pre-2018 levels; FDI inflows increase' },
+      { year: 2028, text: 'SWIFT access partially restored; trade normalization with EU' },
+      { year: 2029, text: 'GDP approaches pre-sanctions peak; inflation enters single digits' },
+    ]
+  },
+
+  // Baseline: Current trajectory continues, no major changes
+  baseline: {
+    label: 'Baseline',
+    color: '#fbbf24',
+    assumptions: 'Status quo persists; sanctions remain but enforcement varies; China remains primary trade partner; gradual workarounds and gray-market trade',
+    oil:       [3.2, 3.3, 3.3, 3.4, 3.4, 3.5],
+    gdp:       [403, 408, 415, 420, 425, 430],
+    inflation: [40, 38, 36, 35, 34, 33],
+    currency:  [550, 600, 650, 700, 740, 780],
+    events: [
+      { year: 2025, text: 'Sanctions maintained; China continues as primary oil buyer' },
+      { year: 2026, text: 'Gray-market trade routes sustain moderate economic activity' },
+      { year: 2027, text: 'Currency continues gradual depreciation; parallel economy grows' },
+      { year: 2028, text: 'Regional influence maintained through proxy relationships' },
+      { year: 2029, text: 'Economy stabilizes at lower equilibrium; structural challenges persist' },
+    ]
+  },
+
+  // Pessimistic: Escalation, tighter sanctions, conflict
+  pessimistic: {
+    label: 'Pessimistic',
+    color: '#ef4444',
+    assumptions: 'Significant escalation in regional tensions; secondary sanctions tightened; reduced oil exports; potential military confrontation',
+    oil:       [3.2, 2.5, 1.8, 1.5, 1.3, 1.0],
+    gdp:       [403, 350, 290, 260, 240, 220],
+    inflation: [40, 55, 70, 80, 85, 90],
+    currency:  [550, 750, 1100, 1500, 1800, 2200],
+    events: [
+      { year: 2025, text: 'Regional conflict escalation; tighter secondary sanctions imposed' },
+      { year: 2026, text: 'Oil exports severely restricted; China reduces purchases under pressure' },
+      { year: 2027, text: 'Currency crisis deepens; hyperinflationary pressures mount' },
+      { year: 2028, text: 'Economic isolation intensifies; humanitarian concerns grow' },
+      { year: 2029, text: 'GDP falls below 2020 levels; significant economic restructuring needed' },
+    ]
+  }
+};
+
+// ── CHART DEFAULTS ────────────────────────────────────────────────
+
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.borderColor = '#334155';
+Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+Chart.defaults.font.size = 12;
+
+const COLORS = {
+  accent: '#38bdf8',
+  accent2: '#f472b6',
+  accent3: '#a78bfa',
+  accent4: '#34d399',
+  danger: '#ef4444',
+  warn: '#fbbf24',
+  surface: '#1e293b',
+};
+
+function gradient(ctx, color) {
+  const g = ctx.createLinearGradient(0, 0, 0, 350);
+  g.addColorStop(0, color + '40');
+  g.addColorStop(1, color + '05');
+  return g;
+}
+
+// ── RANGE FILTERING ───────────────────────────────────────────────
+
+let currentRange = '10y';
+const charts = {};
+const projCharts = {};
+
+function getRange(range) {
+  const total = DATA.years.length;
+  switch (range) {
+    case '3y': return total - 3;
+    case '5y': return total - 5;
+    case '10y': return total - 10;
+    default: return 0;
+  }
+}
+
+function sliced(arr, range) {
+  return arr.slice(getRange(range));
+}
+
+function updateCharts(range) {
+  currentRange = range;
+  const years = sliced(DATA.years, range);
+
+  charts.oil.data.labels = years;
+  charts.oil.data.datasets[0].data = sliced(DATA.oilProduction, range);
+
+  charts.gdp.data.labels = years;
+  charts.gdp.data.datasets[0].data = sliced(DATA.gdp, range);
+
+  charts.inflation.data.labels = years;
+  charts.inflation.data.datasets[0].data = sliced(DATA.inflation, range);
+
+  charts.currency.data.labels = years;
+  charts.currency.data.datasets[0].data = sliced(DATA.irrPerUsd, range);
+
+  charts.sanctions.data.labels = years;
+  charts.sanctions.data.datasets[0].data = sliced(DATA.oilRevenue, range);
+  charts.sanctions.data.datasets[1].data = sliced(DATA.sanctionsIndex, range);
+
+  Object.values(charts).forEach(c => c.update('none'));
+}
+
+// ── HISTORICAL CHARTS ─────────────────────────────────────────────
+
+function makeLineChart(id, data, label, color) {
+  const ctx = document.getElementById(id).getContext('2d');
+  return new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: sliced(DATA.years, currentRange),
+      datasets: [{
+        label,
+        data: sliced(data, currentRange),
+        borderColor: color,
+        backgroundColor: gradient(ctx, color),
+        fill: true,
+        tension: 0.3,
+        pointRadius: 3,
+        pointHoverRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: false, grid: { color: '#334155' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+charts.oil = makeLineChart('oilChart', DATA.oilProduction, 'Oil (M bbl/day)', COLORS.accent);
+charts.gdp = makeLineChart('gdpChart', DATA.gdp, 'GDP ($B)', COLORS.accent4);
+charts.inflation = makeLineChart('inflationChart', DATA.inflation, 'Inflation (%)', COLORS.danger);
+charts.currency = makeLineChart('currencyChart', DATA.irrPerUsd, 'IRR/USD (thousands)', COLORS.accent2);
+
+// Sanctions combo chart
+(function() {
+  const ctx = document.getElementById('sanctionsChart').getContext('2d');
+  charts.sanctions = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: sliced(DATA.years, currentRange),
+      datasets: [
+        {
+          label: 'Oil Revenue ($B)',
+          data: sliced(DATA.oilRevenue, currentRange),
+          backgroundColor: COLORS.accent + '90',
+          borderRadius: 4,
+          yAxisID: 'y',
+        },
+        {
+          label: 'Sanctions Index',
+          data: sliced(DATA.sanctionsIndex, currentRange),
+          type: 'line',
+          borderColor: COLORS.danger,
+          backgroundColor: 'transparent',
+          tension: 0.3,
+          pointRadius: 3,
+          yAxisID: 'y1',
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        y: { beginAtZero: true, position: 'left', title: { display: true, text: 'Revenue ($B)' }, grid: { color: '#334155' } },
+        y1: { beginAtZero: true, max: 100, position: 'right', title: { display: true, text: 'Sanctions Index' }, grid: { display: false } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+})();
+
+// Trade partners grouped bar
+(function() {
+  const ctx = document.getElementById('tradeChart').getContext('2d');
+  charts.trade = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: DATA.tradePartners.labels,
+      datasets: [
+        { label: '2015', data: DATA.tradePartners.data2015, backgroundColor: COLORS.accent3 + '90', borderRadius: 4 },
+        { label: '2020', data: DATA.tradePartners.data2020, backgroundColor: COLORS.accent + '90', borderRadius: 4 },
+        { label: '2024', data: DATA.tradePartners.data2024, backgroundColor: COLORS.accent4 + '90', borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        y: { beginAtZero: true, title: { display: true, text: '$B' }, grid: { color: '#334155' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+})();
+
+// ── PROJECTION CHARTS ─────────────────────────────────────────────
+
+const activeScenarios = { optimistic: true, baseline: true, pessimistic: true };
+
+function makeScenarioDatasets(metric) {
+  const datasets = [];
+  // Historical tail (last 3 years for context)
+  const histYears = DATA.years.slice(-3);
+  const histData = DATA[metric === 'currency' ? 'irrPerUsd' : metric === 'oil' ? 'oilProduction' : metric].slice(-3);
+
+  for (const [key, scenario] of Object.entries(PROJECTIONS)) {
+    if (key === 'years') continue;
+    datasets.push({
+      label: scenario.label,
+      data: scenario[metric],
+      borderColor: scenario.color,
+      backgroundColor: scenario.color + '15',
+      borderWidth: 2,
+      borderDash: [6, 3],
+      fill: false,
+      tension: 0.3,
+      pointRadius: 4,
+      pointHoverRadius: 7,
+      hidden: !activeScenarios[key],
+    });
+  }
+  return datasets;
+}
+
+function makeProjChart(id, metric, yLabel) {
+  const ctx = document.getElementById(id).getContext('2d');
+  return new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: PROJECTIONS.years,
+      datasets: makeScenarioDatasets(metric),
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: {
+          callbacks: {
+            afterBody: function(items) {
+              return 'Scenario projection — not a forecast';
+            }
+          }
+        }
+      },
+      scales: {
+        y: { beginAtZero: false, grid: { color: '#334155' }, title: { display: true, text: yLabel } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+function initProjectionCharts() {
+  if (projCharts.oil) return; // already initialized
+  projCharts.oil = makeProjChart('oilProjChart', 'oil', 'M bbl/day');
+  projCharts.gdp = makeProjChart('gdpProjChart', 'gdp', '$B');
+  projCharts.inflation = makeProjChart('inflationProjChart', 'inflation', '%');
+  projCharts.currency = makeProjChart('currencyProjChart', 'currency', 'IRR/USD (thousands)');
+}
+
+function updateScenarioVisibility() {
+  Object.values(projCharts).forEach(chart => {
+    chart.data.datasets.forEach(ds => {
+      const key = ds.label.toLowerCase();
+      ds.hidden = !activeScenarios[key];
+    });
+    chart.update('none');
+  });
+}
+
+// ── PROJECTION TIMELINE ───────────────────────────────────────────
+
+function renderProjTimeline() {
+  const track = document.getElementById('projTimelineTrack');
+  track.innerHTML = '';
+  const scenarioColors = { optimistic: '#34d399', baseline: '#fbbf24', pessimistic: '#ef4444' };
+
+  for (const [key, scenario] of Object.entries(PROJECTIONS)) {
+    if (key === 'years' || !activeScenarios[key]) continue;
+    scenario.events.forEach(e => {
+      const div = document.createElement('div');
+      div.className = 'timeline-event projected';
+      div.innerHTML = `
+        <div class="date">${e.year}
+          <span class="scenario-tag" style="background:${scenarioColors[key]}20; color:${scenarioColors[key]}">${scenario.label}</span>
+        </div>
+        <div class="desc">${e.text}</div>
+      `;
+      track.appendChild(div);
+    });
+  }
+}
+
+// ── HISTORICAL TIMELINE ───────────────────────────────────────────
+
+const track = document.getElementById('timelineTrack');
+DATA.events.forEach(e => {
+  const div = document.createElement('div');
+  div.className = 'timeline-event';
+  div.innerHTML = `<div class="date">${e.year}</div><div class="desc">${e.text}</div>`;
+  track.appendChild(div);
+});
+
+// ── CONTROLS ──────────────────────────────────────────────────────
+
+// Range buttons
+document.querySelectorAll('.controls button:not(.projection-toggle)').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelector('.controls button.active:not(.projection-toggle)').classList.remove('active');
+    btn.classList.add('active');
+    updateCharts(btn.dataset.range);
+  });
+});
+
+// Projection toggle
+const projSection = document.getElementById('projectionSection');
+const projToggle = document.getElementById('projToggle');
+
+projToggle.addEventListener('click', () => {
+  projToggle.classList.toggle('active');
+  const isVisible = projSection.classList.toggle('visible');
+  projToggle.textContent = isVisible ? 'Hide Projections' : 'Show Projections (2025–2029)';
+  if (isVisible) {
+    initProjectionCharts();
+    renderProjTimeline();
+  }
+});
+
+// Scenario toggles
+document.querySelectorAll('.scenario-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const scenario = btn.dataset.scenario;
+    activeScenarios[scenario] = !activeScenarios[scenario];
+    btn.classList.toggle('active');
+    updateScenarioVisibility();
+    renderProjTimeline();
+  });
+});
+</script>
+</body>
+</html>
