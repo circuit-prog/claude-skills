@@ -1,106 +1,106 @@
-# Quarterly Investment Review Checklist
+# Quarterly Review Checklist — Top 20 Investors Tracker
 
-Step-by-step checklist for executing a quarterly investment portfolio review and updating the research spreadsheet.
+Checklist of data points the program asks Claude to research and update each quarter for the Top 20 Investors Tracker spreadsheet.
 
-## Pre-Review Preparation
+## The Top 20 Investors
 
-Before starting the quarterly review, gather the following:
+The default investor list tracked by the program:
 
-- [ ] Previous quarter's spreadsheet snapshot (archived copy)
-- [ ] Brokerage account statements for the quarter
-- [ ] Dividend and distribution records
-- [ ] Any notes or alerts saved during the quarter
-- [ ] Current market indices for benchmark comparison (S&P 500, NASDAQ, etc.)
+| # | Investor | Firm |
+|---|----------|------|
+| 1 | Warren Buffett | Berkshire Hathaway |
+| 2 | Ray Dalio | Bridgewater Associates |
+| 3 | Cathie Wood | ARK Invest |
+| 4 | Michael Burry | Scion Asset Management |
+| 5 | Bill Ackman | Pershing Square Capital |
+| 6 | David Tepper | Appaloosa Management |
+| 7 | Carl Icahn | Icahn Enterprises |
+| 8 | Seth Klarman | Baupost Group |
+| 9 | Howard Marks | Oaktree Capital |
+| 10 | Stanley Druckenmiller | Duquesne Family Office |
+| 11 | George Soros | Soros Fund Management |
+| 12 | Dan Loeb | Third Point |
+| 13 | Paul Singer | Elliott Management |
+| 14 | Nelson Peltz | Trian Fund Management |
+| 15 | Jeff Ubben | Inclusive Capital Partners |
+| 16 | Chase Coleman | Tiger Global Management |
+| 17 | Philippe Laffont | Coatue Management |
+| 18 | Terry Smith | Fundsmith |
+| 19 | Li Lu | Himalaya Capital |
+| 20 | Joel Greenblatt | Gotham Asset Management |
 
-## Review Checklist by Section
+## Data Points Collected Per Investor
 
-### 1. Portfolio Holdings Update
+Each quarterly update asks Claude to research and return:
 
-- [ ] Verify all current positions are listed in the spreadsheet
-- [ ] Remove any positions that were fully sold
-- [ ] Add any new positions acquired during the quarter
-- [ ] Update share counts for any positions where shares were added or reduced
-- [ ] Record current price per share for each holding
-- [ ] Calculate updated market value for each position
-- [ ] Update cost basis if new lots were purchased
+### 1. Assets Under Management (AUM)
 
-### 2. Performance Tracking
+- Latest publicly reported or estimated AUM
+- Source: fund annual reports, news, regulatory filings
+- Flag if the figure is estimated vs. confirmed
 
-- [ ] Record quarter-end portfolio total value
-- [ ] Calculate quarterly return (percentage gain/loss)
-- [ ] Calculate year-to-date return
-- [ ] Compare returns against benchmark indices
-- [ ] Note any significant outperformers or underperformers
-- [ ] Update trailing 1-year, 3-year, and 5-year returns if tracked
+### 2. Top Holdings and Quarterly Changes
 
-### 3. Income and Distributions
+- Top 3-5 holdings by portfolio weight
+- Indicate if position size increased, decreased, or was unchanged
+- Source: SEC 13F filings (filed ~45 days after quarter end)
 
-- [ ] Record all dividends received during the quarter
-- [ ] Record any capital gains distributions
-- [ ] Record interest income from bonds or cash holdings
-- [ ] Calculate quarterly income yield
-- [ ] Update annual income projections based on current holdings
-- [ ] Note any dividend increases, cuts, or suspensions
+### 3. New Positions
 
-### 4. Asset Allocation Review
+- Any significant new positions opened during the quarter
+- Include approximate position size if disclosed
+- Source: 13F filings, 13D/13G filings for activist stakes
 
-- [ ] Calculate current allocation percentages by asset class
-- [ ] Compare against target allocation
-- [ ] Identify any drift beyond rebalancing thresholds (typically 5%)
-- [ ] Flag positions that have grown to oversized percentage of portfolio
-- [ ] Note any underweight asset classes that need contributions
-- [ ] Document rebalancing actions needed (if any)
+### 4. Exited Positions
 
-### 5. Fundamental Research Update
+- Any significant positions fully closed during the quarter
+- Note if the exit was gradual (trimming over quarters) or sudden
+- Source: 13F filings, news reports
 
-- [ ] Review earnings reports released during the quarter for held stocks
-- [ ] Update revenue and earnings growth figures
-- [ ] Update valuation metrics (P/E, P/B, P/S, EV/EBITDA)
-- [ ] Note any analyst rating changes
-- [ ] Review any management guidance changes
-- [ ] Update thesis notes: Is the original investment thesis intact?
-- [ ] Flag any positions where thesis has materially changed
+### 5. Sector Shifts
 
-### 6. Risk Assessment
+- Notable changes in sector allocation or investment themes
+- Examples: rotating from tech to energy, increasing cash position
+- Source: 13F sector breakdown, investor letters
 
-- [ ] Review sector concentration
-- [ ] Check geographic diversification
-- [ ] Assess interest rate sensitivity of holdings
-- [ ] Review credit quality of fixed income holdings
-- [ ] Note any upcoming catalysts or risks (earnings, regulatory, macro)
-- [ ] Evaluate cash/liquidity position
+### 6. Quarterly Commentary
 
-### 7. Action Items
+- Key public statements, shareholder letters, or interviews
+- Conference appearances and notable quotes
+- Source: Berkshire letters, fund quarterly letters, CNBC/Bloomberg interviews
 
-- [ ] List any rebalancing trades to execute
-- [ ] List positions to research further before next quarter
-- [ ] List any new investment ideas to investigate
-- [ ] Set price alerts or calendar reminders for upcoming events
-- [ ] Schedule any tax-loss harvesting opportunities
-- [ ] Document decisions made and rationale
+### 7. Estimated Performance
 
-## Post-Review Tasks
+- Quarterly fund return if publicly reported or reliably estimated
+- Note whether the figure is official (audited) or press-estimated
+- Source: fund letters, HFR/Preqin databases, financial press
 
-After completing the checklist:
+## Data Sources for Verification
 
-1. **Save the updated spreadsheet** with the quarter label (e.g., `Investment_Research_Q2_2026.xlsx`)
-2. **Archive the previous version** in a dated backup folder
-3. **Write a brief quarterly summary** (3-5 sentences) capturing the key takeaways
-4. **Set a calendar reminder** for next quarter's review if not automated
-5. **Log completion** in the review audit trail
+Claude should reference these sources when compiling the update:
 
-## Quarterly Calendar
+| Source | What It Provides | Timing |
+|--------|-----------------|--------|
+| SEC EDGAR 13F filings | Holdings of institutional managers with >$100M AUM | ~45 days after quarter end |
+| SEC 13D/13G filings | Activist stakes (>5% ownership) | Within 10 days of crossing threshold |
+| Investor quarterly letters | Commentary, performance, outlook | Varies (30-90 days after quarter) |
+| WhaleWisdom | Aggregated 13F data and historical tracking | After 13F deadline |
+| Dataroma | Superinvestor portfolio tracking | After 13F deadline |
+| Financial press (Bloomberg, Reuters) | Performance estimates, news, interviews | Ongoing |
 
-| Quarter | Review Period | Reminder Date | Deadline |
-|---------|--------------|---------------|----------|
-| Q1 | Jan - Mar | April 1 | April 15 |
-| Q2 | Apr - Jun | July 1 | July 15 |
-| Q3 | Jul - Sep | October 1 | October 15 |
-| Q4 | Oct - Dec | January 1 | January 15 |
+## Quarterly Filing Calendar
 
-## When Not to Use This Checklist
+Understanding when data becomes available helps set expectations:
 
-- For daily or weekly trading activity tracking (use a trade journal instead)
-- For tax preparation (consult a tax professional with your brokerage 1099s)
-- For real-time portfolio monitoring (use your brokerage dashboard)
-- As a substitute for professional financial advice
+| Quarter End | 13F Deadline | Typical Letter Release | Best Time to Run Update |
+|-------------|-------------|----------------------|------------------------|
+| March 31 | May 15 | April - June | June 1 |
+| June 30 | August 14 | July - September | September 1 |
+| September 30 | November 14 | October - December | December 1 |
+| December 31 | February 14 | January - March | March 1 |
+
+**Note:** The program's default cron runs on the 1st of Jan/Apr/Jul/Oct, which is the start of the new quarter. At that point, the previous quarter's 13F data may not yet be filed. Consider adjusting the cron to run ~45-60 days after quarter end (mid-February, mid-May, mid-August, mid-November) for the most complete data.
+
+## Customizing the Investor List
+
+To track different investors, modify the `PROMPT` variable in either script. Replace the investor names in the parenthetical list. The rest of the column structure remains the same.

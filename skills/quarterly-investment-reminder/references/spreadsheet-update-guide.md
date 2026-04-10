@@ -1,225 +1,183 @@
-# Investment Research Spreadsheet Update Guide
+# Top 20 Investors Tracker — Spreadsheet Format Guide
 
-Detailed guide for updating each section of the investment research spreadsheet during the quarterly review cycle.
+Column definitions and formatting guidelines for the Top 20 Investors Tracker spreadsheet that Claude updates each quarter.
 
-## Spreadsheet Structure Overview
+## Spreadsheet Column Definitions
 
-A well-organized investment research spreadsheet typically contains these sheets/tabs:
+The program asks Claude to produce a Markdown table with these columns:
 
-| Tab | Purpose | Update Frequency |
-|-----|---------|-----------------|
-| Holdings | Current portfolio positions and values | Quarterly |
-| Performance | Returns tracking and benchmark comparison | Quarterly |
-| Income | Dividends, interest, distributions | Quarterly |
-| Allocation | Asset class breakdown and targets | Quarterly |
-| Research | Individual security analysis and thesis notes | As needed |
-| Watchlist | Prospective investments under evaluation | Quarterly |
-| Transactions | Buy/sell log for the quarter | As transactions occur |
+| Column | Type | Description | Example |
+|--------|------|-------------|---------|
+| Investor | Text | Full name of the investor | Warren Buffett |
+| Firm | Text | Fund or management company | Berkshire Hathaway |
+| AUM (est.) | Currency | Estimated assets under management | $780B |
+| Top Holdings (Q change) | Text | Top 3-5 positions with change indicators | AAPL (+), BAC (=), CVX (-) |
+| New Positions | Text | Positions opened this quarter | CRM, SNOW |
+| Exited Positions | Text | Positions fully closed this quarter | TSM |
+| Sector Shift | Text | Thematic or sector rotation notes | Increasing energy, reducing tech |
+| Quarterly Commentary | Text | Notable public statements or letters | "Cash is king in uncertain markets" |
+| Performance (est.) | Percentage | Estimated quarterly return | +3.2% (est.) |
 
-## Updating the Holdings Tab
+### Change Indicators for Top Holdings
 
-### Column Layout
+Use these symbols to denote quarterly changes:
 
-```
-| Ticker | Name | Shares | Cost Basis | Avg Cost | Current Price | Market Value | Gain/Loss | Gain/Loss % | Sector | Account |
-```
+- `(+)` — Position size increased this quarter
+- `(-)` — Position size decreased this quarter
+- `(=)` — Position size unchanged
+- `(NEW)` — Position opened this quarter (also listed in New Positions)
 
-### Update Process
+## Output File Format
 
-1. **Export current positions** from your brokerage account
-2. **Cross-reference** exported data with spreadsheet rows
-3. **Update share counts** for any positions where you bought or sold partial lots
-4. **Update current price** for each holding using end-of-quarter closing prices
-5. **Recalculate formulas** for Market Value, Gain/Loss, and Gain/Loss %
-
-### Formula Reference
+Each run produces a Markdown file saved to the output directory:
 
 ```
-Market Value    = Shares * Current Price
-Gain/Loss       = Market Value - Cost Basis
-Gain/Loss %     = (Market Value - Cost Basis) / Cost Basis * 100
-Average Cost    = Cost Basis / Shares
+~/Documents/investment-updates/
+├── Q1_2026_update_2026-03-15_090000.md
+├── Q2_2026_update_2026-06-15_090000.md
+├── Q3_2026_update_2026-09-15_090000.md
+└── Q4_2026_update_2026-12-15_090000.md
 ```
 
-### Handling Special Cases
+### File Structure
 
-**Stock splits:**
-- Multiply share count by split ratio
-- Divide cost basis per share by split ratio
-- Total cost basis remains unchanged
+Each output file contains three sections:
 
-**Spin-offs:**
-- Add new row for the spun-off entity
-- Allocate original cost basis proportionally (check IRS guidance or brokerage allocation)
-- Note the spin-off date and allocation method
+```markdown
+# Top 20 Investors Tracker — Q2 2026 Update
 
-**Mergers/Acquisitions:**
-- If cash deal: remove position, record realized gain/loss in Transactions tab
-- If stock deal: update ticker, name, and share count based on exchange ratio
-- If mixed: split into cash proceeds and new shares accordingly
+## Investor Table
 
-## Updating the Performance Tab
+| Investor | Firm | AUM (est.) | Top Holdings (Q change) | New Positions | Exited Positions | Sector Shift | Quarterly Commentary | Performance (est.) |
+|----------|------|-----------|------------------------|---------------|-----------------|-------------|---------------------|-------------------|
+| Warren Buffett | Berkshire Hathaway | $780B | AAPL (+), BAC (=), ... | ... | ... | ... | ... | +2.1% |
+| ... | ... | ... | ... | ... | ... | ... | ... | ... |
 
-### Quarter-over-Quarter Tracking
+## Quarterly Highlights
 
-```
-| Period | Start Value | Contributions | Withdrawals | End Value | Return % | S&P 500 % | Difference |
-```
+1. Most notable move across all 20 investors
+2. Second most notable move
+3. ...
 
-### Calculating Returns
+## Data Sources
 
-**Simple return** (no cash flows during quarter):
-```
-Return % = (End Value - Start Value) / Start Value * 100
+- SEC EDGAR 13F filings (filed 2026-05-15)
+- Berkshire Hathaway Q1 2026 shareholder letter
+- ...
 ```
 
-**Modified Dietz method** (with cash flows):
-```
-Return % = (End Value - Start Value - Net Flows) / (Start Value + Weighted Flows) * 100
-```
+## Converting Output to a Spreadsheet
 
-Where Weighted Flows accounts for the timing of contributions and withdrawals within the quarter.
+Claude's output is Markdown. To convert it into an actual spreadsheet:
 
-### Benchmark Comparison
+### Option A: Manual Copy-Paste
 
-Record quarter-end values for your chosen benchmarks:
+1. Open the output `.md` file
+2. Copy the Markdown table
+3. Paste into Google Sheets or Excel (some editors parse Markdown tables directly)
 
-- S&P 500 (broad US market)
-- NASDAQ Composite (tech-heavy)
-- Russell 2000 (small cap)
-- MSCI EAFE (international developed)
-- Bloomberg US Aggregate Bond (fixed income)
-- Your custom blended benchmark (if applicable)
+### Option B: Automated Conversion with Python
 
-Calculate alpha: `Alpha = Portfolio Return - Benchmark Return`
+```python
+"""Convert the Markdown output to an Excel spreadsheet."""
+import re
+import sys
+from pathlib import Path
 
-## Updating the Income Tab
+import openpyxl
 
-### Tracking Quarterly Income
 
-```
-| Date | Ticker | Type | Amount Per Share | Shares | Total Amount | Tax Treatment | Account |
-```
+def md_table_to_rows(md_text: str) -> list[list[str]]:
+    """Extract rows from a Markdown table."""
+    lines = md_text.strip().split("\n")
+    rows = []
+    for line in lines:
+        line = line.strip()
+        if not line.startswith("|"):
+            continue
+        # Skip separator rows (|---|---|...)
+        if re.match(r"^\|[\s\-:|]+\|$", line):
+            continue
+        cells = [c.strip() for c in line.split("|")[1:-1]]
+        rows.append(cells)
+    return rows
 
-**Type categories:**
-- Qualified Dividend
-- Non-Qualified Dividend
-- Return of Capital
-- Short-Term Capital Gain
-- Long-Term Capital Gain
-- Interest
 
-### Quarterly Income Summary
+def convert(md_path: str, xlsx_path: str) -> None:
+    """Read a Markdown file and write the investor table to Excel."""
+    md_text = Path(md_path).read_text(encoding="utf-8")
 
-At the bottom of each quarter's entries, add a summary row:
+    # Extract just the table section
+    table_lines = [
+        line for line in md_text.split("\n")
+        if line.strip().startswith("|")
+    ]
+    table_text = "\n".join(table_lines)
+    rows = md_table_to_rows(table_text)
 
-```
-| Q2 2026 Total | -- | -- | -- | -- | $X,XXX.XX | -- | -- |
-```
+    if not rows:
+        print("No table found in the Markdown file.")
+        sys.exit(1)
 
-Track the trailing 12-month income and project forward annual income based on current holdings and most recent distribution rates.
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Top 20 Investors"
 
-## Updating the Allocation Tab
+    for row in rows:
+        ws.append(row)
 
-### Target vs. Actual Allocation
+    # Auto-size columns
+    for col in ws.columns:
+        max_len = max(len(str(cell.value or "")) for cell in col)
+        ws.column_dimensions[col[0].column_letter].width = min(max_len + 2, 50)
 
-```
-| Asset Class | Target % | Current Value | Current % | Difference | Action Needed |
-```
+    wb.save(xlsx_path)
+    print(f"Saved: {xlsx_path}")
 
-**Common asset classes:**
-- US Large Cap
-- US Mid Cap
-- US Small Cap
-- International Developed
-- Emerging Markets
-- US Bonds
-- International Bonds
-- REITs
-- Commodities
-- Cash/Money Market
 
-### Rebalancing Decision
-
-Apply a threshold-based approach:
-
-1. Calculate the drift for each asset class: `Drift = Current % - Target %`
-2. If any class drifts beyond your threshold (e.g., +/- 5%), flag for rebalancing
-3. Prioritize rebalancing using new contributions before selling existing holdings
-4. Document the rebalancing plan in the Action Items section
-
-## Updating the Research Tab
-
-### Per-Security Research Entry
-
-```
-| Ticker | Last Updated | Thesis | Bull Case | Bear Case | Fair Value Est. | Current Price | Rating | Next Catalyst |
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print("Usage: python md_to_xlsx.py <input.md> <output.xlsx>")
+        sys.exit(1)
+    convert(sys.argv[1], sys.argv[2])
 ```
 
-### Quarterly Research Refresh
+### Option C: Pipe the Conversion into the Cron Job
 
-For each holding, update:
-
-1. **Thesis status** - Still intact? Any material changes?
-2. **Valuation metrics** - P/E, P/B, PEG, EV/EBITDA from latest earnings
-3. **Growth metrics** - Revenue growth, EPS growth, margin trends
-4. **Fair value estimate** - Recalculate or note if unchanged
-5. **Rating** - Strong Buy / Buy / Hold / Sell / Strong Sell
-6. **Next catalyst** - Earnings date, product launch, regulatory decision
-
-### When to Escalate Research
-
-Flag a position for deeper research if any of these apply:
-- Stock has declined more than 20% from purchase price
-- Original thesis has a material change
-- Sector or macro headwinds have emerged
-- Position has grown to more than 10% of portfolio
-- Management change or accounting concerns
-
-## Updating the Watchlist Tab
-
-### Watchlist Entry Format
-
-```
-| Ticker | Name | Sector | Target Entry Price | Current Price | Thesis | Added Date | Priority |
-```
-
-### Quarterly Watchlist Maintenance
-
-1. **Remove** any entries you are no longer interested in
-2. **Update current prices** for remaining entries
-3. **Reassess target entry prices** based on updated fundamentals
-4. **Add new ideas** discovered during the quarter
-5. **Promote to Holdings** any watchlist items you purchased
-6. **Rank by priority** (High / Medium / Low) for next quarter
-
-## Version Control and Archiving
-
-### File Naming Convention
-
-```
-Investment_Research_YYYY_QN.xlsx
-```
-
-Examples:
-- `Investment_Research_2026_Q1.xlsx`
-- `Investment_Research_2026_Q2.xlsx`
-
-### Archive Process
+Extend the bash or Python program to run the conversion automatically after Claude responds:
 
 ```bash
-# Create archive directory if it doesn't exist
-mkdir -p ~/Documents/Investments/archive
-
-# Copy current spreadsheet to archive with quarter label
-cp ~/Documents/Investments/Investment_Research.xlsx \
-   ~/Documents/Investments/archive/Investment_Research_2026_Q2.xlsx
-
-# Now update the working copy with new quarter data
+# Append to quarterly-investment-reminder.sh after Claude writes the .md file:
+python3 ~/bin/md_to_xlsx.py "$OUTPUT_FILE" "${OUTPUT_FILE%.md}.xlsx"
 ```
 
-### Backup Best Practices
+This produces both the raw Markdown and an Excel file each quarter.
 
-- Keep at least 8 quarters (2 years) of archived snapshots
-- Store a secondary backup in cloud storage or external drive
-- Never edit archived copies; they serve as point-in-time records
+## Environment Variables
+
+Both the bash and Python scripts accept these overrides:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `OUTPUT_DIR` | `~/Documents/investment-updates` | Where output files are saved |
+| `LOG_FILE` | `~/investment-reminder.log` | Log file path |
+| `CLAUDE_MODEL` | `claude-sonnet-4-6` | Model to use (Python script only) |
+| `MAX_TOKENS` | `8192` | Max response tokens (Python script only) |
+| `ANTHROPIC_API_KEY` | (none) | Required for the Python script |
+| `SPREADSHEET_PATH` | `~/Documents/Top_20_Investors_Tracker.xlsx` | Reference path for the tracker |
+
+## Adjusting the Schedule
+
+The default cron runs on the 1st of each quarter start month. For better data availability (13F filings are due ~45 days after quarter end), consider these alternative schedules:
+
+```cron
+# Default: 1st of quarter start (Jan, Apr, Jul, Oct)
+0 9 1 1,4,7,10 * ~/bin/quarterly-investment-reminder.sh
+
+# Better: Mid-month after 13F deadline (Feb, May, Aug, Nov)
+0 9 15 2,5,8,11 * ~/bin/quarterly-investment-reminder.sh
+
+# Aggressive: Two runs — early estimate + post-13F final
+0 9 1 1,4,7,10 * ~/bin/quarterly-investment-reminder.sh    # early
+0 9 15 2,5,8,11 * ~/bin/quarterly-investment-reminder.sh   # final
+```
