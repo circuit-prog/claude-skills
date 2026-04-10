@@ -41,8 +41,8 @@ The simplest approach uses the `claude` CLI in non-interactive print mode (`-p`)
 
 ### Script: `quarterly-investment-reminder.sh`
 
-```bash
-#!/usr/bin/env bash
+```zsh
+#!/bin/zsh
 # quarterly-investment-reminder.sh
 # Runs quarterly via cron. Messages Claude to update the Top 20 Investors Tracker.
 
@@ -54,7 +54,8 @@ OUTPUT_DIR="${OUTPUT_DIR:-$HOME/Documents/investment-updates}"
 LOG_FILE="${LOG_FILE:-$HOME/investment-reminder.log}"
 
 # --- Derived values -----------------------------------------------------------
-QUARTER=$(( ($(date +%-m) - 1) / 3 + 1 ))
+MONTH=$(date +%m)
+QUARTER=$(( (MONTH - 1) / 3 + 1 ))
 YEAR=$(date +%Y)
 TIMESTAMP=$(date '+%Y-%m-%d_%H%M%S')
 OUTPUT_FILE="${OUTPUT_DIR}/Q${QUARTER}_${YEAR}_update_${TIMESTAMP}.md"
