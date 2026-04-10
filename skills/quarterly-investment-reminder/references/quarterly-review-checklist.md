@@ -92,14 +92,14 @@ Claude should reference these sources when compiling the update:
 
 Understanding when data becomes available helps set expectations:
 
-| Quarter End | 13F Deadline | Typical Letter Release | Best Time to Run Update |
-|-------------|-------------|----------------------|------------------------|
-| March 31 | May 15 | April - June | June 1 |
-| June 30 | August 14 | July - September | September 1 |
-| September 30 | November 14 | October - December | December 1 |
-| December 31 | February 14 | January - March | March 1 |
+| Quarter End | 13F Deadline | Typical Letter Release | Program Runs |
+|-------------|-------------|----------------------|-------------|
+| March 31 | May 15 | April - June | May 15 |
+| June 30 | August 14 | July - September | August 15 |
+| September 30 | November 14 | October - December | November 15 |
+| December 31 | February 14 | January - March | February 15 |
 
-**Note:** The program's default cron runs on the 1st of Jan/Apr/Jul/Oct, which is the start of the new quarter. At that point, the previous quarter's 13F data may not yet be filed. Consider adjusting the cron to run ~45-60 days after quarter end (mid-February, mid-May, mid-August, mid-November) for the most complete data.
+The program's default cron runs on the 15th of Feb/May/Aug/Nov — approximately 45 days after each quarter ends, right after the SEC 13F filing deadline. This ensures the most complete holdings data is available when Claude runs the update.
 
 ## Customizing the Investor List
 

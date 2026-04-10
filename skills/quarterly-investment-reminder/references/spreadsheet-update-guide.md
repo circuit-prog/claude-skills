@@ -166,18 +166,15 @@ Both the bash and Python scripts accept these overrides:
 | `ANTHROPIC_API_KEY` | (none) | Required for the Python script |
 | `SPREADSHEET_PATH` | `~/Documents/Top_20_Investors_Tracker.xlsx` | Reference path for the tracker |
 
-## Adjusting the Schedule
+## Schedule
 
-The default cron runs on the 1st of each quarter start month. For better data availability (13F filings are due ~45 days after quarter end), consider these alternative schedules:
+The default cron runs ~45 days after each quarter ends (Feb 15, May 15, Aug 15, Nov 15), which is right after the SEC 13F filing deadline. This ensures the most complete data is available.
 
 ```cron
-# Default: 1st of quarter start (Jan, Apr, Jul, Oct)
-0 9 1 1,4,7,10 * ~/bin/quarterly-investment-reminder.sh
-
-# Better: Mid-month after 13F deadline (Feb, May, Aug, Nov)
+# Default: 45 days after quarter end, after 13F deadline
 0 9 15 2,5,8,11 * ~/bin/quarterly-investment-reminder.sh
 
-# Aggressive: Two runs — early estimate + post-13F final
+# Alternative: Two runs — early estimate at quarter start + post-13F final
 0 9 1 1,4,7,10 * ~/bin/quarterly-investment-reminder.sh    # early
 0 9 15 2,5,8,11 * ~/bin/quarterly-investment-reminder.sh   # final
 ```

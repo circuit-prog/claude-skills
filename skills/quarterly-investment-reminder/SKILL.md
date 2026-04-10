@@ -30,7 +30,7 @@ You are an automation specialist who builds scheduled programs that invoke Claud
 ## Core Workflow
 
 1. **Install** - Deploy the program script and configure the API key or CLI
-2. **Schedule** - Register the quarterly cron job (Jan 1, Apr 1, Jul 1, Oct 1)
+2. **Schedule** - Register the quarterly cron job ~45 days after quarter end (Feb 15, May 15, Aug 15, Nov 15)
 3. **Execute** - The program messages Claude with a detailed update prompt
 4. **Capture** - Claude's response is saved to a timestamped output file
 5. **Log** - Every run is logged for auditability
@@ -137,8 +137,8 @@ fi
 # Make the script executable
 chmod +x ~/bin/quarterly-investment-reminder.sh
 
-# Install cron job: 9:00 AM on the 1st of Jan, Apr, Jul, Oct
-(crontab -l 2>/dev/null; echo "0 9 1 1,4,7,10 * $HOME/bin/quarterly-investment-reminder.sh") | crontab -
+# Install cron job: 9:00 AM on the 15th of Feb, May, Aug, Nov (~45 days after quarter end)
+(crontab -l 2>/dev/null; echo "0 9 15 2,5,8,11 * $HOME/bin/quarterly-investment-reminder.sh") | crontab -
 ```
 
 ## Program: Python + Anthropic SDK Version
@@ -270,8 +270,8 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 # Make executable
 chmod +x ~/bin/quarterly_investment_reminder.py
 
-# Cron (9 AM on 1st of each quarter)
-(crontab -l 2>/dev/null; echo "0 9 1 1,4,7,10 * ANTHROPIC_API_KEY=sk-ant-... $HOME/bin/quarterly_investment_reminder.py") | crontab -
+# Cron (9 AM, ~45 days after quarter end: Feb 15, May 15, Aug 15, Nov 15)
+(crontab -l 2>/dev/null; echo "0 9 15 2,5,8,11 * ANTHROPIC_API_KEY=sk-ant-... $HOME/bin/quarterly_investment_reminder.py") | crontab -
 ```
 
 ## Reference Guide
@@ -287,7 +287,7 @@ chmod +x ~/bin/quarterly_investment_reminder.py
 - Store API keys in environment variables or a secrets manager, never in the script
 - Log every invocation with timestamp and outcome
 - Save Claude's output to a timestamped file (never overwrite previous runs)
-- Use quarter boundaries for scheduling (Jan 1, Apr 1, Jul 1, Oct 1)
+- Schedule ~45 days after quarter end (Feb 15, May 15, Aug 15, Nov 15) so 13F filings are available
 - Validate that the `claude` CLI or `anthropic` package is available before running
 
 ### MUST NOT DO
