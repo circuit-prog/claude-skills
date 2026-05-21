@@ -78,7 +78,7 @@ describe('milestones in the simulate loop', () => {
     forceStartSiege(w);
     // Give the city food so the survival loop can run.
     for (let i = 0; i < 5; i++) {
-      placeBuilding(w, 'farm', 30 + i, 30, { instant: true, freeOfCost: true });
+      placeBuilding(w, 'farm', 60 + i, 20, { instant: true, freeOfCost: true });
     }
     placeBuilding(w, 'warehouse', 35, 30, { instant: true, freeOfCost: true });
     w.day = 14;

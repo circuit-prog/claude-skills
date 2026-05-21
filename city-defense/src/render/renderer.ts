@@ -1,7 +1,10 @@
 import type { World } from '../world/world.ts';
 import type { Camera } from './camera.ts';
 import { resizeCamera } from './camera.ts';
-import { drawTerrain, drawGrid, drawBuildings, drawSoldiers, drawEnemies, drawHoverTile } from './layers.ts';
+import {
+  drawTerrain, drawGrid, drawBuildings, drawSoldiers, drawEnemies,
+  drawHoverTile, drawDistrictLabels, drawCompassRose,
+} from './layers.ts';
 
 export interface RenderContext {
   canvas: HTMLCanvasElement;
@@ -43,6 +46,7 @@ export function render(rc: RenderContext, world: World): void {
 
   drawTerrain(ctx, world, cam);
   drawGrid(ctx, cam);
+  drawDistrictLabels(ctx, cam);
   drawBuildings(ctx, world, cam);
   drawSoldiers(ctx, world, cam);
   drawEnemies(ctx, world, cam);
@@ -50,5 +54,13 @@ export function render(rc: RenderContext, world: World): void {
     drawHoverTile(ctx, cam, rc.hoverTile.x, rc.hoverTile.y, rc.hoverTile.valid);
   }
 
+  ctx.restore();
+
+  // Screen-space overlays. After restore() the matrix is back to identity;
+  // re-apply DPR scale so the compass rose lands at the right pixels and
+  // stays crisp on high-DPI displays.
+  ctx.save();
+  ctx.scale(dpr, dpr);
+  drawCompassRose(ctx, cam.viewportW, cam.viewportH);
   ctx.restore();
 }

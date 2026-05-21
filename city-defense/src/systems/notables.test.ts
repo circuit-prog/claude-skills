@@ -145,7 +145,7 @@ describe('disloyal merchant feeds the food pressure', () => {
       const merchant = findOne(w, (n) => n.role === 'merchant');
       merchant.personalLoyalty = merchantLoyalty;
       for (let i = 0; i < 4; i++) {
-        placeBuilding(w, 'farm', 30 + i, 30, { instant: true, freeOfCost: true });
+        placeBuilding(w, 'farm', 60 + i, 20, { instant: true, freeOfCost: true });
       }
       while (!w.gameOver && w.day < 200) simulate(w);
       return { day: w.day, reason: w.gameOver?.reason };

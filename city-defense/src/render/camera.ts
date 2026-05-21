@@ -13,10 +13,15 @@ const MIN_ZOOM = 0.4;
 const MAX_ZOOM = 3.0;
 
 export function createCamera(viewportW: number, viewportH: number): Camera {
+  const mapPxW = CONFIG.mapWidth * CONFIG.tileSize;
+  const mapPxH = CONFIG.mapHeight * CONFIG.tileSize;
+  // Fit-to-viewport zoom so the whole city + outskirts are visible on load.
+  // Player can wheel-zoom in once they pick a build target.
+  const fitZoom = Math.min(viewportW / mapPxW, viewportH / mapPxH) * 0.95;
   return {
-    cx: (CONFIG.mapWidth * CONFIG.tileSize) / 2,
-    cy: (CONFIG.mapHeight * CONFIG.tileSize) / 2,
-    zoom: 1,
+    cx: mapPxW / 2,
+    cy: mapPxH / 2,
+    zoom: Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, fitZoom)),
     viewportW,
     viewportH,
   };

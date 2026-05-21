@@ -54,7 +54,7 @@ describe('general buffs', () => {
       const w = createWorld(setup({ general: getGeneral(generalId), army: {} }));
       w.policy.taxRate = 30;
       for (let i = 0; i < 8; i++) {
-        placeBuilding(w, 'farm', 30 + i, 30, { instant: true, freeOfCost: true });
+        placeBuilding(w, 'farm', 60 + i, 20, { instant: true, freeOfCost: true });
       }
       placeBuilding(w, 'warehouse', 30, 31, { instant: true, freeOfCost: true });
       return w;

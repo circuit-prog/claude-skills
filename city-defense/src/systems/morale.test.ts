@@ -44,7 +44,7 @@ describe('morale + revolt loss condition', () => {
     // Feed them enough to NOT die from starvation first — give them lots
     // of farms but a brutal tax burden.
     for (let i = 0; i < 8; i++) {
-      placeBuilding(w, 'farm', 30 + i, 30, { instant: true, freeOfCost: true });
+      placeBuilding(w, 'farm', 60 + i, 20, { instant: true, freeOfCost: true });
     }
     for (let t = 0; t < CONFIG.ticksPerGameDay * 80; t++) {
       simulate(w);
@@ -58,7 +58,7 @@ describe('morale + revolt loss condition', () => {
     w.policy.taxRate = 8;
     // Plenty of food, a tavern for morale, and a survivable schedule.
     for (let i = 0; i < 6; i++) {
-      placeBuilding(w, 'farm', 30 + i, 30, { instant: true, freeOfCost: true });
+      placeBuilding(w, 'farm', 60 + i, 20, { instant: true, freeOfCost: true });
     }
     // Warehouses to stockpile through winter (cap raises by 600 each).
     placeBuilding(w, 'warehouse', 36, 30, { instant: true, freeOfCost: true });
