@@ -45,6 +45,12 @@ export const CONFIG = {
   taxBaselineRate: 10,               // %, neutral; below boosts morale, above lowers
   goldPerCitizenPerTaxPoint: 0.05,   // daily gold per citizen per tax-rate-pct
 
+  // Combat
+  attackCooldownTicks: 6,            // ticks between attacks
+  combatRange: 1,                    // melee adjacency
+  rangedRange: 4,                    // crossbow / tower
+  soldierEngageRange: 5,             // sally hunting radius
+
   // Starting resources (overridden by general buff + army composition)
   startingFood: 400,
   startingGold: 500,

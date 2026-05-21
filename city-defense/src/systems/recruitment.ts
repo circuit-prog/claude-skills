@@ -5,7 +5,7 @@ import { UNITS } from '../data/units.ts';
 import { CONFIG } from '../data/config.ts';
 
 // Spawn the starting army chosen on the setup screen. Soldiers begin on
-// 'reserve' duty; the duty system assigns them once Phase 6 lands.
+// 'reserve' duty; the duty panel reassigns them during the prep phase.
 export function spawnStartingArmy(world: World, comp: ArmyComposition): void {
   const keepX = Math.floor(CONFIG.mapWidth / 2);
   const keepY = Math.floor(CONFIG.mapHeight / 2);
@@ -14,6 +14,7 @@ export function spawnStartingArmy(world: World, comp: ArmyComposition): void {
   for (const [kindStr, count] of Object.entries(comp)) {
     if (!count || count <= 0) continue;
     const kind = kindStr as UnitKind;
+    const def = UNITS[kind];
     for (let i = 0; i < count; i++) {
       const id = allocate(world.entities);
       // Spiral out from the keep so units don't all sit on one tile.
@@ -26,7 +27,10 @@ export function spawnStartingArmy(world: World, comp: ArmyComposition): void {
         unit: kind,
         named: false,
         loyalty: 80,
+        attackCooldown: 0,
+        moveCooldown: 0,
       });
+      setComponent(world.components.health, id, { hp: def.hp, max: def.hp });
       setComponent(world.components.duty, id, { kind: 'reserve' });
       placedCount += 1;
     }

@@ -46,11 +46,18 @@ export interface Soldier {
   unit: UnitKind;
   named: boolean;
   loyalty: number;
+  attackCooldown: number;       // ticks until next attack ready
+  moveCooldown: number;         // ticks until next move ready
 }
 
 export interface Duty {
   kind: DutyKind;
   assignedTo?: EntityId;
+  // For 'wall' duty: x/y of the wall tile they're guarding.
+  // For 'sally'/'reserve': not used (they path dynamically).
+  // For 'watch': x/y of the district they're patrolling.
+  postX?: number;
+  postY?: number;
 }
 
 export type EnemyKind = 'raider' | 'soldier' | 'siege-engine' | 'champion';
@@ -60,6 +67,12 @@ export interface Enemy {
   kind: EnemyKind;
   faction: EnemyFaction;
   target?: EntityId;
+  attackCooldown: number;
+  moveCooldown: number;
+  // Cached path to target; recomputed when blocked or empty.
+  path: Array<{ x: number; y: number }>;
+  pathTargetX?: number;
+  pathTargetY?: number;
 }
 
 export type NotableRole =
