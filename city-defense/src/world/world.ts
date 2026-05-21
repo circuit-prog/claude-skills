@@ -137,6 +137,12 @@ export interface World {
   pendingMilestoneId: string | null;   // unread banner (UI clears on dismiss)
   reliefUnlocked: boolean;             // Day-175 milestone flag — weakens enemies
 
+  // Random-event subsystem (Phase 9)
+  pendingEventId: string | null;       // modal showing now (one at a time)
+  eventCooldowns: Record<string, number>;   // event id → earliest re-eligible day
+  queuedEvents: Array<{ defId: string; fireOnDay: number }>;
+  eventLog: Array<{ defId: string; choiceLabel: string; day: number }>;
+
   // End state
   gameOver?: GameOver;
 }
@@ -223,6 +229,10 @@ export function createWorld(setup: SetupChoices): World {
     firedMilestones: [],
     pendingMilestoneId: null,
     reliefUnlocked: false,
+    pendingEventId: null,
+    eventCooldowns: {},
+    queuedEvents: [],
+    eventLog: [],
   };
 
   // The Keep sits at the centre of the map. Capturing it is loss condition (1).
