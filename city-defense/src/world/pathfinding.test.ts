@@ -23,7 +23,7 @@ describe('A* pathfinding', () => {
 
   it('returns empty when fully walled in', () => {
     const m = createTilemap(10, 10);
-    const blocked = (x: number, y: number) => x === 4;
+    const blocked = (x: number, _y: number) => x === 4;
     const path = findPath(m, 0, 5, 9, 5, blocked);
     expect(path).toEqual([]);
   });

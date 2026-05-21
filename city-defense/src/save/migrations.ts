@@ -1,6 +1,6 @@
 import type { SaveEnvelope } from './serialize.ts';
 
-export const CURRENT_SAVE_VERSION = 3;
+export const CURRENT_SAVE_VERSION = 4;
 
 type Migrator = (e: SaveEnvelope) => SaveEnvelope;
 
@@ -37,6 +37,13 @@ const MIGRATIONS: Record<number, Migrator> = {
         if (!Array.isArray(e['path'])) e['path'] = [];
       }
     }
+    return env;
+  },
+  // 3 → 4: Phase 7 added mercenaryDesertions counter on PopulationPool.
+  3: (env) => {
+    const w = env.world as unknown as { population?: Record<string, unknown> };
+    const pop = w.population;
+    if (pop && pop['mercenaryDesertions'] === undefined) pop['mercenaryDesertions'] = 0;
     return env;
   },
 };
