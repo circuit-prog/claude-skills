@@ -133,6 +133,9 @@ export interface World {
   // Queues
   requests: NotableRequest[];
   activeEvents: ActiveEvent[];
+  firedMilestones: string[];           // act-break event ids that have already played
+  pendingMilestoneId: string | null;   // unread banner (UI clears on dismiss)
+  reliefUnlocked: boolean;             // Day-175 milestone flag — weakens enemies
 
   // End state
   gameOver?: GameOver;
@@ -217,6 +220,9 @@ export function createWorld(setup: SetupChoices): World {
     },
     requests: [],
     activeEvents: [],
+    firedMilestones: [],
+    pendingMilestoneId: null,
+    reliefUnlocked: false,
   };
 
   // The Keep sits at the centre of the map. Capturing it is loss condition (1).
