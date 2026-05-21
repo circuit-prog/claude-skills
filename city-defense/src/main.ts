@@ -7,7 +7,9 @@ import { createInputState, bindInput } from './engine/input.ts';
 import { createCamera, panScreen, zoomAt, screenToTile } from './render/camera.ts';
 import { attachCanvas, render as drawWorld } from './render/renderer.ts';
 import { mountHud } from './ui/hud.ts';
-import { advanceConstruction, placeBuilding } from './systems/construction.ts';
+import { mountGameOver } from './ui/gameOver.ts';
+import { placeBuilding } from './systems/construction.ts';
+import { simulate as runTick } from './systems/simulate.ts';
 import { buildingDef } from './data/buildings.ts';
 import type { BuildingKind } from './ecs/components.ts';
 import { CONFIG } from './data/config.ts';
@@ -31,15 +33,17 @@ const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
 const hudRoot = document.getElementById('hud') as HTMLDivElement;
 if (!canvas || !hudRoot) throw new Error('expected #game-canvas and #hud in DOM');
 
-const world = createWorld(DEFAULT_SETUP);
+let world = createWorld(DEFAULT_SETUP);
 const cam = createCamera(canvas.clientWidth, canvas.clientHeight);
 const rc = attachCanvas(canvas, cam);
 const input = createInputState();
 
-// Seed the Keep at the centre of the map (loss condition 1 target).
-const keepX = Math.floor(CONFIG.mapWidth / 2);
-const keepY = Math.floor(CONFIG.mapHeight / 2);
-placeBuilding(world, 'keep', keepX, keepY, { instant: true, freeOfCost: true });
+function seedKeep() {
+  const keepX = Math.floor(CONFIG.mapWidth / 2);
+  const keepY = Math.floor(CONFIG.mapHeight / 2);
+  placeBuilding(world, 'keep', keepX, keepY, { instant: true, freeOfCost: true });
+}
+seedKeep();
 
 let selectedBuilding: BuildingKind | null = null;
 let lastAutosaveDay = world.day;
@@ -47,17 +51,32 @@ let lastAutosaveDay = world.day;
 const hud = mountHud(hudRoot, {
   setSpeed: (s: SpeedSetting) => { world.speed = s; refreshHud(); },
   selectBuilding: (k) => { selectedBuilding = k; refreshHud(); },
+  setTaxRate: (r) => { world.policy.taxRate = clamp(r, 0, 30); refreshHud(); },
+  setRationing: (r) => { world.policy.rationing = r; refreshHud(); },
   saveGame: () => { saveTo(SLOT_QUICK, world); flashStatus('Saved.'); },
   loadGame: () => {
-    if (loadInto(SLOT_QUICK, world)) { flashStatus('Loaded.'); refreshHud(); return true; }
+    if (loadInto(SLOT_QUICK, world)) {
+      gameOver.hide();
+      flashStatus('Loaded.');
+      refreshHud();
+      return true;
+    }
     flashStatus('No save in quick slot.');
     return false;
   },
 });
 
-function refreshHud() {
-  hud.update(world, selectedBuilding);
-}
+const gameOver = mountGameOver(hudRoot, () => {
+  // Restart: fresh world with a fresh seed, fresh autosave.
+  world = createWorld({ ...DEFAULT_SETUP, seed: Math.floor(Math.random() * 0xffffffff) });
+  seedKeep();
+  lastAutosaveDay = world.day;
+  saveTo(SLOT_AUTOSAVE, world);
+  gameOver.hide();
+  refreshHud();
+});
+
+function refreshHud() { hud.update(world, selectedBuilding); }
 
 bindInput(input, {
   canvas,
@@ -96,19 +115,19 @@ function updateHoverTile() {
   rc.hoverTile = { x: tile.x, y: tile.y, valid };
 }
 
-const simulate: SimulateFn = (w) => {
-  advanceConstruction(w);
-  // Other systems land in subsequent phases.
-};
+const simulate: SimulateFn = (w) => { runTick(w); };
 
 const renderFn: RenderFn = (w) => {
   updateHoverTile();
   drawWorld(rc, w);
 
-  // Per-day autosave (drives multi-session resume).
   if (w.day !== lastAutosaveDay) {
     lastAutosaveDay = w.day;
     saveTo(SLOT_AUTOSAVE, w);
+  }
+  if (w.gameOver) {
+    w.speed = 0;
+    gameOver.show(w);
   }
   refreshHud();
 };
@@ -131,7 +150,6 @@ function flashStatus(msg: string) {
 
 bindAutosaveTriggers(world);
 
-// Offer resume on launch if an autosave exists.
 if (hasSave(SLOT_AUTOSAVE)) {
   if (confirm('Continue previous game?')) {
     loadInto(SLOT_AUTOSAVE, world);
@@ -141,3 +159,7 @@ if (hasSave(SLOT_AUTOSAVE)) {
 const loop = createLoop(world, simulate, renderFn);
 loop.start();
 refreshHud();
+
+function clamp(v: number, lo: number, hi: number): number {
+  return Math.max(lo, Math.min(hi, v));
+}

@@ -1,10 +1,14 @@
 import type { World, SpeedSetting } from '../world/world.ts';
 import type { BuildingKind } from '../ecs/components.ts';
 import { BUILDABLE_KINDS, buildingDef } from '../data/buildings.ts';
+import { daysOfFoodRemaining } from '../systems/food.ts';
+import { housingCapacity } from '../systems/population.ts';
 
 export interface HudCallbacks {
   setSpeed(speed: SpeedSetting): void;
   selectBuilding(kind: BuildingKind | null): void;
+  setTaxRate(rate: number): void;
+  setRationing(r: World['policy']['rationing']): void;
   saveGame(): void;
   loadGame(): boolean;
 }
@@ -18,6 +22,9 @@ export function mountHud(root: HTMLElement, cb: HudCallbacks): Hud {
 
   const bar = el('div', 'hud-bar');
   const food = resource('Food');
+  const foodHint = el('span');
+  foodHint.style.cssText = 'font-size: 0.75rem; color: #b09060; margin-left: 0.3rem;';
+  food.root.append(foodHint);
   const gold = resource('Gold');
   const wood = resource('Wood');
   const stone = resource('Stone');
@@ -26,28 +33,60 @@ export function mountHud(root: HTMLElement, cb: HudCallbacks): Hud {
   const phase = el('div', 'phase');
   bar.append(food.root, gold.root, wood.root, stone.root, pop.root, morale.root, phase);
 
-  const buildMenu = el('div', 'hud-build');
-  buildMenu.style.cssText = `
-    position: absolute; left: 1rem; top: 4rem;
-    background: rgba(0,0,0,0.75); border: 1px solid #3a2a1a;
-    padding: 0.5rem; max-width: 13rem;
-    display: flex; flex-direction: column; gap: 0.3rem;
-    font-size: 0.85rem;
+  // Left-side panel: build menu + policy controls
+  const left = el('div');
+  left.style.cssText = `
+    position: absolute; left: 1rem; top: 4rem; bottom: 5rem;
+    width: 13rem; display: flex; flex-direction: column; gap: 0.7rem;
+    overflow-y: auto;
   `;
-  const buildTitle = el('div');
-  buildTitle.style.cssText = 'color:#d4a050; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.2rem;';
-  buildTitle.textContent = 'Build';
-  buildMenu.append(buildTitle);
 
+  const buildMenu = panelSection('Build');
   const buildButtons = new Map<BuildingKind | null, HTMLButtonElement>();
   const cancelBtn = makeBuildButton('Cancel (Esc)', null, cb);
   buildButtons.set(null, cancelBtn);
-  buildMenu.append(cancelBtn);
+  buildMenu.body.append(cancelBtn);
   for (const k of BUILDABLE_KINDS) {
-    const btn = makeBuildButton(`${buildingDef(k).label}`, k, cb);
+    const def = buildingDef(k);
+    const cost = `${def.cost.wood}w ${def.cost.stone}s ${def.cost.gold}g`;
+    const btn = makeBuildButton(`${def.label} — ${cost}`, k, cb);
     buildButtons.set(k, btn);
-    buildMenu.append(btn);
+    buildMenu.body.append(btn);
   }
+
+  const policy = panelSection('Policy');
+  const taxLabel = el('div');
+  taxLabel.style.cssText = 'font-size: 0.8rem; color: #c0b090;';
+  const taxSlider = document.createElement('input');
+  taxSlider.type = 'range';
+  taxSlider.min = '0';
+  taxSlider.max = '30';
+  taxSlider.step = '1';
+  taxSlider.style.cssText = 'width: 100%;';
+  taxSlider.addEventListener('input', () => {
+    cb.setTaxRate(Number(taxSlider.value));
+  });
+
+  const rationLabel = el('div');
+  rationLabel.style.cssText = 'font-size: 0.8rem; color: #c0b090; margin-top: 0.5rem;';
+  rationLabel.textContent = 'Rations';
+  const rationRow = el('div');
+  rationRow.style.cssText = 'display: flex; gap: 0.3rem;';
+  const rationButtons: Record<World['policy']['rationing'], HTMLButtonElement> = {
+    'normal': rationButton('Normal', 'normal', cb),
+    'half': rationButton('Half', 'half', cb),
+    'starve-soldiers': rationButton('Civ first', 'starve-soldiers', cb),
+  };
+  rationRow.append(rationButtons.normal, rationButtons.half, rationButtons['starve-soldiers']);
+
+  policy.body.append(taxLabel, taxSlider, rationLabel, rationRow);
+
+  const status = panelSection('Status');
+  const statusLines = el('div');
+  statusLines.style.cssText = 'font-size: 0.8rem; line-height: 1.35; color: #c0b090;';
+  status.body.append(statusLines);
+
+  left.append(buildMenu.root, policy.root, status.root);
 
   const controls = el('div', 'hud-controls');
   const speedButtons: Record<SpeedSetting, HTMLButtonElement> = {
@@ -67,28 +106,54 @@ export function mountHud(root: HTMLElement, cb: HudCallbacks): Hud {
     spacer(), saveBtn, loadBtn,
   );
 
-  root.append(bar, buildMenu, controls);
+  root.append(bar, left, controls);
 
   return {
     update(world, selected) {
       food.value.textContent = String(Math.floor(world.resources.food));
+      const dof = daysOfFoodRemaining(world);
+      foodHint.textContent = dof === Infinity ? '' : `(${dof}d)`;
+      foodHint.style.color = dof <= 3 ? '#e08060' : dof <= 7 ? '#d4a050' : '#b09060';
       gold.value.textContent = String(Math.floor(world.resources.gold));
       wood.value.textContent = String(Math.floor(world.resources.wood));
       stone.value.textContent = String(Math.floor(world.resources.stone));
-      pop.value.textContent = String(world.population.total);
+      pop.value.textContent = `${world.population.total}/${housingCapacity(world)}`;
       morale.value.textContent = `${Math.round(world.population.morale)}`;
+      morale.value.style.color = moraleColor(world.population.morale);
 
       const dayTxt = `Day ${world.day} / ${world.daysToSurvive}`;
       if (world.phase === 'preparation') {
-        phase.textContent = `${dayTxt} — Preparation (siege in ${world.daysUntilSiege}d)`;
+        phase.textContent = `${dayTxt} · Preparation · Siege in ${world.daysUntilSiege}d`;
       } else {
-        phase.textContent = `${dayTxt} — Under Siege`;
+        phase.textContent = `${dayTxt} · Under Siege`;
       }
+
+      taxSlider.value = String(world.policy.taxRate);
+      taxLabel.textContent = `Tax rate: ${world.policy.taxRate}% (baseline 10%)`;
+      for (const k of ['normal', 'half', 'starve-soldiers'] as const) {
+        rationButtons[k].classList.toggle('active', world.policy.rationing === k);
+      }
+
+      const statusBits: string[] = [];
+      if (world.population.homeless > 0) statusBits.push(`Homeless: ${world.population.homeless}`);
+      if (world.population.rioting) statusBits.push(`<span style="color:#e06060">RIOT IN PROGRESS</span>`);
+      else if (world.population.daysInUnrest > 0) statusBits.push(`Unrest day ${world.population.daysInUnrest}`);
+      if (world.population.daysWithoutFood > 0) statusBits.push(`<span style="color:#e08060">Hungry for ${world.population.daysWithoutFood}d</span>`);
+      if (world.population.starvationDeaths > 0) statusBits.push(`Dead from starvation: ${world.population.starvationDeaths}`);
+      statusBits.push(`Season: ${world.season}`);
+      statusLines.innerHTML = statusBits.join('<br>');
 
       for (const [k, btn] of buildButtons) btn.classList.toggle('active', selected === k);
       for (const k of [0, 1, 2, 4] as SpeedSetting[]) speedButtons[k].classList.toggle('active', world.speed === k);
     },
   };
+}
+
+function moraleColor(v: number): string {
+  if (v < 20) return '#e06060';
+  if (v < 40) return '#e0a060';
+  if (v < 60) return '#e0d060';
+  return '#90e090';
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string): HTMLElementTagNameMap[K] {
@@ -113,6 +178,21 @@ function resource(label: string): { root: HTMLElement; value: HTMLElement } {
   return { root, value };
 }
 
+function panelSection(title: string): { root: HTMLElement; body: HTMLElement } {
+  const root = document.createElement('div');
+  root.style.cssText = `
+    background: rgba(0,0,0,0.75); border: 1px solid #3a2a1a;
+    padding: 0.5rem; display: flex; flex-direction: column; gap: 0.3rem;
+  `;
+  const header = document.createElement('div');
+  header.textContent = title;
+  header.style.cssText = 'color:#d4a050; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em;';
+  const body = document.createElement('div');
+  body.style.cssText = 'display:flex; flex-direction:column; gap:0.3rem;';
+  root.append(header, body);
+  return { root, body };
+}
+
 function speedButton(label: string, speed: SpeedSetting, cb: HudCallbacks): HTMLButtonElement {
   const b = el('button');
   b.textContent = label;
@@ -126,8 +206,20 @@ function makeBuildButton(label: string, kind: BuildingKind | null, cb: HudCallba
   b.style.cssText = `
     background: #2a1f15; color: #e6dcc8; border: 1px solid #5a4530;
     padding: 0.25rem 0.5rem; cursor: pointer; font-family: inherit;
-    font-size: 0.85rem; text-align: left;
+    font-size: 0.8rem; text-align: left;
   `;
   b.addEventListener('click', () => cb.selectBuilding(kind));
+  return b;
+}
+
+function rationButton(label: string, r: World['policy']['rationing'], cb: HudCallbacks): HTMLButtonElement {
+  const b = el('button');
+  b.textContent = label;
+  b.style.cssText = `
+    flex: 1; background: #2a1f15; color: #e6dcc8; border: 1px solid #5a4530;
+    padding: 0.2rem 0.3rem; cursor: pointer; font-family: inherit;
+    font-size: 0.75rem;
+  `;
+  b.addEventListener('click', () => cb.setRationing(r));
   return b;
 }

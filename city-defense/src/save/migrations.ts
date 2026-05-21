@@ -1,13 +1,26 @@
 import type { SaveEnvelope } from './serialize.ts';
 
-export const CURRENT_SAVE_VERSION = 1;
+export const CURRENT_SAVE_VERSION = 2;
 
 type Migrator = (e: SaveEnvelope) => SaveEnvelope;
 
 // Each migrator advances a save from version N to N+1.
 // Order matters: keep insertion ascending by version key.
 const MIGRATIONS: Record<number, Migrator> = {
-  // 0 → 1: no migration; v1 is the first shipped format.
+  // 1 → 2: introduced PolicyState (tax rate + rationing) and revolt fields
+  // (daysInUnrest, rioting) on the population pool.
+  1: (env) => {
+    const w = env.world as unknown as Record<string, unknown>;
+    if (!w['policy']) {
+      w['policy'] = { taxRate: 10, rationing: 'normal' };
+    }
+    const pop = w['population'] as Record<string, unknown> | undefined;
+    if (pop) {
+      if (pop['daysInUnrest'] === undefined) pop['daysInUnrest'] = 0;
+      if (pop['rioting'] === undefined) pop['rioting'] = false;
+    }
+    return env;
+  },
 };
 
 export function migrate(env: SaveEnvelope): SaveEnvelope {

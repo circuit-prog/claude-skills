@@ -29,6 +29,7 @@ interface SerializedWorld {
   general: World['general'];
   resources: World['resources'];
   population: World['population'];
+  policy: World['policy'];
 
   nextEntityId: number;
   components: Record<keyof World['components'], Array<[number, unknown]>>;
@@ -77,6 +78,7 @@ function serialize(w: World): SerializedWorld {
     general: w.general,
     resources: { ...w.resources },
     population: { ...w.population, byJob: { ...w.population.byJob } },
+    policy: { ...w.policy },
 
     nextEntityId: w.entities.next,
     components: {
@@ -114,6 +116,7 @@ function deserialize(s: SerializedWorld, target: World): World {
   target.general = s.general;
   target.resources = { ...s.resources };
   target.population = { ...s.population, byJob: { ...s.population.byJob } };
+  target.policy = { ...s.policy };
 
   target.entities.next = s.nextEntityId;
 
