@@ -13,6 +13,8 @@ import { mountGameOver } from './ui/gameOver.ts';
 import { mountSetupScreen } from './setup/setupScreen.ts';
 import { placeBuilding, placeStartingWalls } from './systems/construction.ts';
 import { spawnStartingArmy } from './systems/recruitment.ts';
+import { acceptRequest, declineRequest } from './systems/requests.ts';
+import { generateNotables } from './ecs/notables.ts';
 import { simulate as runTick } from './systems/simulate.ts';
 import { buildingDef } from './data/buildings.ts';
 import { GENERALS } from './data/generals.ts';
@@ -59,6 +61,7 @@ function applySetup(choices: SetupChoices): World {
   placeBuilding(w, 'keep', keepX, keepY, { instant: true, freeOfCost: true });
   placeStartingWalls(w, choices.general.buff.startingWallSegments ?? 0);
   spawnStartingArmy(w, choices.army);
+  generateNotables(w, choices.general.buff.startingNotables ?? 0);
   return w;
 }
 
@@ -125,6 +128,12 @@ hud = mountHud(hudRoot, {
   selectBuilding: (k) => { selectedBuilding = k; refreshHud(); },
   setTaxRate: (r) => { world.policy.taxRate = Math.max(0, Math.min(30, r)); refreshHud(); },
   setRationing: (r) => { world.policy.rationing = r; refreshHud(); },
+  acceptRequest: (id) => {
+    const result = acceptRequest(world, id);
+    if (!result.ok) flashStatus(`Can't accept: ${result.reason}.`);
+    refreshHud();
+  },
+  declineRequest: (id) => { declineRequest(world, id); refreshHud(); },
   saveGame: () => { saveTo(SLOT_QUICK, world); flashStatus('Saved.'); },
   loadGame: () => {
     if (loadInto(SLOT_QUICK, world)) {

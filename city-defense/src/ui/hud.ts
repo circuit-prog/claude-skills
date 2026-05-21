@@ -3,12 +3,18 @@ import type { BuildingKind } from '../ecs/components.ts';
 import { BUILDABLE_KINDS, buildingDef } from '../data/buildings.ts';
 import { daysOfFoodRemaining } from '../systems/food.ts';
 import { housingCapacity } from '../systems/population.ts';
+import { mountNotablesPanel } from './notablesPanel.ts';
+import type { NotablesPanel } from './notablesPanel.ts';
+import { mountRequestInbox } from './requestInbox.ts';
+import type { RequestInbox } from './requestInbox.ts';
 
 export interface HudCallbacks {
   setSpeed(speed: SpeedSetting): void;
   selectBuilding(kind: BuildingKind | null): void;
   setTaxRate(rate: number): void;
   setRationing(r: World['policy']['rationing']): void;
+  acceptRequest(id: string): void;
+  declineRequest(id: string): void;
   saveGame(): void;
   loadGame(): boolean;
 }
@@ -86,7 +92,14 @@ export function mountHud(root: HTMLElement, cb: HudCallbacks): Hud {
   statusLines.style.cssText = 'font-size: 0.8rem; line-height: 1.35; color: #c0b090;';
   status.body.append(statusLines);
 
-  left.append(buildMenu.root, policy.root, status.root);
+  const notablesPanel: NotablesPanel = mountNotablesPanel();
+
+  left.append(buildMenu.root, policy.root, status.root, notablesPanel.root);
+
+  const requestInbox: RequestInbox = mountRequestInbox({
+    onAccept: (id) => cb.acceptRequest(id),
+    onDecline: (id) => cb.declineRequest(id),
+  });
 
   const controls = el('div', 'hud-controls');
   const speedButtons: Record<SpeedSetting, HTMLButtonElement> = {
@@ -106,7 +119,7 @@ export function mountHud(root: HTMLElement, cb: HudCallbacks): Hud {
     spacer(), saveBtn, loadBtn,
   );
 
-  root.append(bar, left, controls);
+  root.append(bar, left, requestInbox.root, controls);
 
   return {
     update(world, selected) {
@@ -145,6 +158,9 @@ export function mountHud(root: HTMLElement, cb: HudCallbacks): Hud {
 
       for (const [k, btn] of buildButtons) btn.classList.toggle('active', selected === k);
       for (const k of [0, 1, 2, 4] as SpeedSetting[]) speedButtons[k].classList.toggle('active', world.speed === k);
+
+      notablesPanel.update(world);
+      requestInbox.update(world);
     },
   };
 }
