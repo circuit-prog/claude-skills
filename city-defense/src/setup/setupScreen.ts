@@ -2,8 +2,15 @@ import type { SetupChoices } from '../world/world.ts';
 import { createGeneralPicker } from './generalPicker.ts';
 import { createArmyComposer } from './armyComposer.ts';
 
+export type SetupResult =
+  | { kind: 'new-game'; choices: SetupChoices }
+  | { kind: 'resume' }
+  | { kind: 'discard-save' };
+
 export interface SetupScreen {
-  show(initial?: Partial<SetupChoices>): Promise<SetupChoices>;
+  /** Returns the player's decision: start a new game, resume an existing
+   *  save, or discard the save before starting fresh. */
+  show(opts?: { hasResume?: boolean; initial?: Partial<SetupChoices> }): Promise<SetupResult>;
 }
 
 export function mountSetupScreen(root: HTMLElement): SetupScreen {
@@ -65,6 +72,23 @@ export function mountSetupScreen(root: HTMLElement): SetupScreen {
   `;
   seedInput.value = String(Math.floor(Math.random() * 0xffffffff));
 
+  const resumeBtn = document.createElement('button');
+  resumeBtn.textContent = 'Resume Last Campaign';
+  resumeBtn.style.cssText = `
+    background: #3a2f25; color: #f0e4c8; border: 1px solid #6a5530;
+    padding: 0.6rem 1.4rem; font-family: inherit; font-size: 1rem;
+    cursor: pointer; display: none;
+  `;
+
+  const discardBtn = document.createElement('button');
+  discardBtn.textContent = 'Discard Save';
+  discardBtn.title = 'Delete the saved campaign so it stops appearing here.';
+  discardBtn.style.cssText = `
+    background: transparent; color: #a07060; border: 1px solid #5a3a30;
+    padding: 0.6rem 1rem; font-family: inherit; font-size: 0.85rem;
+    cursor: pointer; display: none;
+  `;
+
   const beginBtn = document.createElement('button');
   beginBtn.textContent = 'Begin Preparation';
   beginBtn.style.cssText = `
@@ -73,29 +97,44 @@ export function mountSetupScreen(root: HTMLElement): SetupScreen {
     cursor: pointer;
   `;
 
-  footer.append(seedLabel, seedInput, beginBtn);
+  footer.append(seedLabel, seedInput, discardBtn, resumeBtn, beginBtn);
 
   overlay.append(heading, grid, footer);
   root.append(overlay);
 
-  let resolver: ((choice: SetupChoices) => void) | null = null;
+  let resolver: ((r: SetupResult) => void) | null = null;
+  function settle(r: SetupResult): void {
+    overlay.style.display = 'none';
+    resolver?.(r);
+    resolver = null;
+  }
 
   beginBtn.addEventListener('click', () => {
-    const choice: SetupChoices = {
-      seed: Number(seedInput.value) || Math.floor(Math.random() * 0xffffffff),
-      general: picker.selected(),
-      army: composer.composition(),
-    };
-    overlay.style.display = 'none';
-    resolver?.(choice);
-    resolver = null;
+    settle({
+      kind: 'new-game',
+      choices: {
+        seed: Number(seedInput.value) || Math.floor(Math.random() * 0xffffffff),
+        general: picker.selected(),
+        army: composer.composition(),
+      },
+    });
+  });
+
+  resumeBtn.addEventListener('click', () => settle({ kind: 'resume' }));
+  discardBtn.addEventListener('click', () => {
+    if (confirm('Delete the saved campaign? This cannot be undone.')) {
+      settle({ kind: 'discard-save' });
+    }
   });
 
   return {
-    show(initial) {
-      if (initial?.seed !== undefined) seedInput.value = String(initial.seed);
+    show(opts = {}) {
+      if (opts.initial?.seed !== undefined) seedInput.value = String(opts.initial.seed);
+      const hasResume = !!opts.hasResume;
+      resumeBtn.style.display = hasResume ? 'block' : 'none';
+      discardBtn.style.display = hasResume ? 'block' : 'none';
       overlay.style.display = 'flex';
-      return new Promise<SetupChoices>((resolve) => { resolver = resolve; });
+      return new Promise<SetupResult>((resolve) => { resolver = resolve; });
     },
   };
 }

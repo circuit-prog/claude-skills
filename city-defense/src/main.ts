@@ -221,18 +221,31 @@ window.addEventListener('keydown', (e) => {
 bindAutosaveTriggers(world);
 
 async function startFreshGame(): Promise<void> {
-  // Pause sim, show setup, swap world on commit.
   if (loop) loop.stop();
   world.speed = 0;
-  const choices = await setupScreen.show();
-  world = applySetup(choices);
-  lastAutosaveDay = world.day;
-  lastSeenDesertions = world.population.mercenaryDesertions;
-  deleteSlot(SLOT_AUTOSAVE);
-  saveTo(SLOT_AUTOSAVE, world);
-  refreshHud();
-  loop = createLoop(world, simulate, renderFn);
-  loop.start();
+  while (true) {
+    const result = await setupScreen.show({ hasResume: hasSave(SLOT_AUTOSAVE) });
+    if (result.kind === 'discard-save') {
+      deleteSlot(SLOT_AUTOSAVE);
+      flashStatus('Saved campaign deleted.');
+      continue;     // loop back so they can pick new game
+    }
+    if (result.kind === 'resume') {
+      if (loadExistingGame()) return;
+      flashStatus('Could not load saved campaign — start a new game.');
+      continue;
+    }
+    // New game with explicit choices.
+    world = applySetup(result.choices);
+    lastAutosaveDay = world.day;
+    lastSeenDesertions = world.population.mercenaryDesertions;
+    deleteSlot(SLOT_AUTOSAVE);
+    saveTo(SLOT_AUTOSAVE, world);
+    refreshHud();
+    loop = createLoop(world, simulate, renderFn);
+    loop.start();
+    return;
+  }
 }
 
 function loadExistingGame(): boolean {
@@ -247,13 +260,11 @@ function loadExistingGame(): boolean {
   return true;
 }
 
-// Boot: offer resume if an autosave exists, otherwise straight to setup.
+// Boot: always show the setup screen first. If an autosave exists, the
+// setup screen surfaces a Resume button — never auto-loads silently.
+// Auto-resume was a UX trap: schema changes meant a stale save would
+// load an outdated world that looked broken next to the latest map.
 async function boot() {
-  if (hasSave(SLOT_AUTOSAVE)) {
-    if (confirm('Continue previous game?')) {
-      if (loadExistingGame()) return;
-    }
-  }
   await startFreshGame();
 }
 void boot();
