@@ -4,6 +4,117 @@
 
 ---
 
+## Repository Overview
+
+This repository is the source for **`fullstack-dev-skills`** — a Claude Code plugin published to the `jeffallan/claude-skills` marketplace. It ships:
+
+- **66 model-invoked skills** under `skills/` (language experts, frameworks, infra, security, testing, workflow)
+- **9 user-invoked slash commands** under `commands/` (`/common-ground`, `/intake:*`, `/project:*`)
+- **365 reference files** providing Tier 2 progressive disclosure content
+- An **Astro + Starlight documentation site** under `site/` (deployed to `jeffallan.github.io/claude-skills`)
+- **Python validation/release tooling** under `scripts/`
+
+Skills follow the [Agent Skills specification](https://agentskills.io/specification) and the project-specific conventions documented below.
+
+---
+
+## Repository Layout
+
+```
+.
+├── .claude-plugin/        # Plugin manifest (plugin.json) and marketplace.json
+├── .github/workflows/     # CI: ci.yml -> validate.yml (skills + markdown + docs sync + lint)
+├── assets/                # Social preview HTML/PNG + capture-screenshot.js (puppeteer)
+├── commands/              # User-invocable slash commands
+│   ├── common-ground/     # /common-ground context-engineering command
+│   ├── intake/            # /intake:* codebase onboarding commands
+│   ├── project/           # /project:* epic lifecycle commands
+│   │   ├── discovery/     # create / synthesize / approve
+│   │   ├── planning/      # epic-plan / impl-plan
+│   │   ├── execution/     # execute-ticket / complete-ticket
+│   │   └── retrospectives/# complete-sprint / complete-epic
+│   └── workflow-manifest.yaml  # Phase graph + dependencies
+├── docs/                  # Long-form docs (Atlassian setup, workflow guides, prompts, ideas)
+├── research/              # Reference research notes (e.g. superpowers.md)
+├── scripts/               # Python tooling (see "Development Commands")
+├── site/                  # Astro/Starlight documentation site
+│   ├── src/               # components, content, content.config.ts, styles
+│   ├── scripts/sync-content.mjs  # Pulls skill metadata into site content collections
+│   └── package.json       # `npm run dev | build | preview | lint | format`
+├── skills/                # 66 model-invoked skills, one directory each
+│   └── <skill-name>/
+│       ├── SKILL.md       # Tier 1: ~80-100 lines, trigger-only description
+│       └── references/    # Tier 2: deep-dive reference files (100-600 lines)
+├── specs/                 # Per-feature technical designs (created by skills)
+├── CHANGELOG.md           # Keep a Changelog format, manually maintained per release
+├── CLAUDE.md              # This file
+├── CONTRIBUTING.md        # External contributor guide
+├── MODELCLAUDE.md         # Notes on model behavior in this repo
+├── Makefile               # Top-level dev/validate/lint/site targets
+├── QUICKSTART.md          # End-user install and first-prompt walkthrough
+├── README.md              # Landing page (counts auto-updated via HTML markers)
+├── ROADMAP.md             # Forward-looking plans
+├── SKILLS_GUIDE.md        # Authoritative skill index, decision trees, combinations
+├── pyrightconfig.json     # Type-check config (scripts only)
+├── ruff.toml              # Python lint/format (scripts only, py311, line-length 120)
+├── .prettierrc / .prettierignore  # JS/TS/CSS/Astro formatting (site + assets)
+├── .pre-commit-config.yaml # ruff + prettier + pyright hooks
+└── version.json           # Single source of truth: {version, skillCount, workflowCount, referenceFileCount}
+```
+
+### Key Conventions for the Layout
+
+- **Every skill is a directory** with `SKILL.md` plus a `references/` subdirectory. Never put skill content in a single flat file.
+- **Counts are not hand-edited.** `version.json` is the source of truth for `version`; counts are computed by `scripts/update-docs.py` from the filesystem and synced into Markdown via `<!-- SKILL_COUNT -->...<!-- /SKILL_COUNT -->` style HTML markers.
+- **`commands/` directories mirror slash command namespaces.** `commands/project/discovery/create.yaml` becomes `/project:discovery:create`. The phase graph lives in `commands/workflow-manifest.yaml`.
+- **`site/` is a standalone npm sub-project.** Treat it like a separate package — install and run scripts from inside `site/`.
+
+---
+
+## Development Commands
+
+All targets are defined in the top-level `Makefile`; they wrap the underlying Python and npm tooling.
+
+| Command | What it does |
+|---|---|
+| `make validate` | Runs `scripts/validate-skills.py` + `scripts/update-docs.py --check`. Run this before every release. |
+| `make test` | Runs `scripts/test-makefile.sh` (smoke test for `dev-link` / `dev-unlink`). |
+| `make lint` | Ruff (check + format check) + pyright on `scripts/`; Prettier check on `site/` + `assets/`. |
+| `make format` / `make lint-fix` | Auto-fix Ruff + Prettier issues. |
+| `make site-dev` | `cd site && npm run dev` — local Astro dev server. |
+| `make site-build` | `cd site && npm run build` — production site build. |
+| `make dev-link` | Symlinks the plugin cache dir to the working copy for iterative local development. Requires the plugin to already be installed. |
+| `make dev-unlink` | Restores the cached plugin from `.bak` (reverses `dev-link`). |
+
+### Python Scripts (`scripts/`)
+
+| Script | Purpose |
+|---|---|
+| `update-docs.py` | Reads `version.json`, recomputes counts from the filesystem, writes them back, and updates HTML-marker placeholders in `README.md`, `QUICKSTART.md`, plugin manifests, site content, etc. Supports `--check` (CI dry-fail) and `--dry-run`. |
+| `validate-skills.py` | Validates YAML frontmatter, name format, description rules ("Use when", ≤ 1024 chars), references directory existence, and count consistency. Supports `--check {yaml,references,workflows,crossrefs}`, `--skill <name>`, `--format json`. |
+| `validate-markdown.py` | Catches HTML comments inside tables, unclosed code fences, missing table separator rows, inconsistent column counts. `--check` for CI. |
+| `migrate-frontmatter.py` | One-off / occasional migration helper for frontmatter schema changes. |
+| `test-makefile.sh` | Bash smoke test for Makefile targets. |
+
+### Linting & Formatting Rules
+
+- **Python (`scripts/` only):** Ruff with rules `E,W,F,I,UP,B,SIM,RUF`, `target-version = py311`, `line-length = 120`, double quotes, isort with `force-sort-within-sections`. Type-checked with pyright.
+- **JS/TS/Astro/CSS (`site/`, `assets/`):** Prettier 3.5.x with `singleQuote: true`, `trailingComma: 'all'`, `printWidth: 120`. The Astro plugin (`prettier-plugin-astro`) must be passed explicitly via `--plugin prettier-plugin-astro` for `.astro` files.
+- **Markdown:** No specific linter — but `validate-markdown.py` enforces structural rules (no HTML comments in tables, closed fences, correct table shape).
+- **Editor:** `.editorconfig` is authoritative — LF line endings, trim trailing whitespace (except `.md`), final newline required, 2-space indent for JS/TS/JSON/CSS/Astro, 4-space for Python, tabs for `Makefile`.
+- **Pre-commit:** Configured in `.pre-commit-config.yaml`. Install with `pre-commit install`. Hooks: ruff (with `--fix`), ruff-format, prettier (on `site/` and `assets/`), pyright (on `scripts/`).
+
+### CI (`.github/workflows/ci.yml`)
+
+CI runs on push/PR to `main` and `dev`. It calls `validate.yml`, which has two jobs:
+
+1. **Validate** — `validate-skills.py`, `validate-markdown.py --check`, `update-docs.py --check`.
+2. **Lint** — runs `pre-commit` plus an explicit Astro-formatting check.
+
+If `make validate` and `make lint` pass locally, CI should pass.
+
+---
+
 ## Skill Authorship Standards
 
 Skills follow the [Agent Skills specification](https://agentskills.io/specification). This section covers project-specific conventions that go beyond the base spec.
