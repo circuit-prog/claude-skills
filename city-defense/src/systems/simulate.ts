@@ -12,6 +12,7 @@ import { maybeStartSiege } from './siege.ts';
 import { spawnWavesDay, advanceEnemiesTick } from './enemy.ts';
 import { advanceSoldiersTick } from './military.ts';
 import { maybeFireMilestoneDay } from './milestones.ts';
+import { advanceEventsDay } from './events.ts';
 import { evaluateEndConditions } from './victory.ts';
 
 // One simulation tick. The loop calls this at CONFIG.tickMs cadence.
@@ -41,6 +42,9 @@ export function simulate(world: World): void {
     processSoldierUpkeepDay(world);
     updateNotablesDay(world);
     advanceRequestsDay(world);
+    // Random events roll AFTER requests so the inbox is the everyday
+    // governance loop and events are the dramatic interruptions on top.
+    advanceEventsDay(world);
     updateMoraleDay(world);
     updateRevoltDay(world);
     evaluateEndConditions(world);
