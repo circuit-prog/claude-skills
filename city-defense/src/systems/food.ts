@@ -1,4 +1,5 @@
 import type { World, Season } from '../world/world.ts';
+import { effectiveBuff } from '../world/world.ts';
 import { each } from '../ecs/store.ts';
 import { buildingDef } from '../data/buildings.ts';
 import { UNITS } from '../data/units.ts';
@@ -59,7 +60,7 @@ export function consumeFoodDay(world: World): DailyFoodReport {
     soldierFood += UNITS[s.unit].foodPerDay;
   }
 
-  const consumptionMult = 1 + (world.general.buff.foodConsumptionPct ?? 0) / 100;
+  const consumptionMult = 1 + effectiveBuff(world, 'foodConsumptionPct') / 100;
   const required = (world.population.total * citizenRate + soldierFood) * consumptionMult
                  + disloyalFoodPenalty(world);
 
@@ -119,7 +120,7 @@ export function daysOfFoodRemaining(world: World): number {
   for (const s of world.components.soldier.map.values()) {
     soldierFood += UNITS[s.unit].foodPerDay;
   }
-  const consumptionMult = 1 + (world.general.buff.foodConsumptionPct ?? 0) / 100;
+  const consumptionMult = 1 + effectiveBuff(world, 'foodConsumptionPct') / 100;
   const required = (world.population.total * CONFIG.foodPerCitizenPerDay + soldierFood) * consumptionMult;
   if (required <= 0) return Infinity;
   return Math.floor(world.resources.food / required);

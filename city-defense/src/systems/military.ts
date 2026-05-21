@@ -4,6 +4,7 @@ import type { EntityId } from '../ecs/store.ts';
 import { UNITS } from '../data/units.ts';
 import { ENEMIES } from '../data/enemies.ts';
 import { CONFIG } from '../data/config.ts';
+import { effectiveBuff } from '../world/world.ts';
 import { garrisonStrengthMultiplier } from './notables.ts';
 import { getBuildingAt, inBounds } from '../world/tilemap.ts';
 
@@ -89,7 +90,7 @@ function maybeAttackAdjacent(world: World, id: EntityId, soldier: Soldier): void
   if (dist > range) return;
   soldier.attackCooldown = CONFIG.attackCooldownTicks;
 
-  const attackBuff = 1 + (world.general.buff.attackPct ?? 0) / 100;
+  const attackBuff = 1 + effectiveBuff(world, 'attackPct') / 100;
   const captainMult = garrisonStrengthMultiplier(world);
   const ehp = world.components.health.map.get(target);
   const e = world.components.enemy.map.get(target);
@@ -141,7 +142,7 @@ function stepToward(
   soldier.moveCooldown -= 1;
   if (soldier.moveCooldown > 0) return;
   const def = UNITS[soldier.unit];
-  const moveBuff = 1 + (world.general.buff.movePct ?? 0) / 100;
+  const moveBuff = 1 + effectiveBuff(world, 'movePct') / 100;
   soldier.moveCooldown = Math.max(2, Math.floor(def.ticksPerStep / moveBuff));
 
   const dx = Math.sign(tx - pos.x);

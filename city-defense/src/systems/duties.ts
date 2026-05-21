@@ -2,6 +2,7 @@ import type { World } from '../world/world.ts';
 import type { DutyKind } from '../ecs/components.ts';
 import type { EntityId } from '../ecs/store.ts';
 import { each, setComponent } from '../ecs/store.ts';
+import { effectiveBuff } from '../world/world.ts';
 import { garrisonStrengthMultiplier } from './notables.ts';
 
 export const DUTY_KINDS: readonly DutyKind[] = ['reserve', 'wall', 'gatehouse', 'sally', 'watch'] as const;
@@ -49,7 +50,7 @@ const MORALE_CAP = 20;
 export function watchMoraleBonus(world: World): number {
   const counts = countByDuty(world);
   const base = counts.watch * MORALE_PER_WATCH;
-  const buff = 1 + (world.general.buff.watchEfficiencyPct ?? 0) / 100;
+  const buff = 1 + effectiveBuff(world, 'watchEfficiencyPct') / 100;
   return Math.min(MORALE_CAP, base * buff);
 }
 

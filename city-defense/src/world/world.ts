@@ -34,6 +34,7 @@ export interface PopulationPool {
   daysWithoutFood: number;
   daysInUnrest: number;
   rioting: boolean;
+  mercenaryDesertions: number;   // cumulative; UI diffs this for toasts
 }
 
 export interface PolicyState {
@@ -145,16 +146,28 @@ export interface SetupChoices {
   army: ArmyComposition;
 }
 
+// Read an ArmyBuff field with both buff and drawback applied. Systems must
+// use this — reading world.general.buff directly drops the drawback (e.g.,
+// Veteran Knight's +5% recruit cost lives in drawback, so reading .buff
+// alone would miss it).
+export function effectiveBuff(world: World, key: keyof ArmyBuff): number {
+  const a = world.general.buff[key];
+  const b = world.general.drawback?.[key];
+  return (a ?? 0) + (b ?? 0);
+}
+
 export function createWorld(setup: SetupChoices): World {
   const rng = createRng(setup.seed);
   const tilemap = createTilemap(CONFIG.mapWidth, CONFIG.mapHeight, 'grass');
   generateTerrain(tilemap, rng);
 
-  const buff = setup.general.buff;
-  const startingFood = CONFIG.startingFood + (buff.startingFoodBonus ?? 0);
-  const startingGold = CONFIG.startingGold + (buff.startingGoldBonus ?? 0);
-  const startingWood = CONFIG.startingWood + (buff.startingWoodBonus ?? 0);
-  const startingStone = CONFIG.startingStone + (buff.startingStoneBonus ?? 0);
+  // Apply both buff and drawback to starting resources.
+  const fromBuff = (k: keyof ArmyBuff) =>
+    (setup.general.buff[k] ?? 0) + (setup.general.drawback?.[k] ?? 0);
+  const startingFood = CONFIG.startingFood + fromBuff('startingFoodBonus');
+  const startingGold = CONFIG.startingGold + fromBuff('startingGoldBonus');
+  const startingWood = CONFIG.startingWood + fromBuff('startingWoodBonus');
+  const startingStone = CONFIG.startingStone + fromBuff('startingStoneBonus');
 
   const world: World = {
     tick: 0,
@@ -186,6 +199,7 @@ export function createWorld(setup: SetupChoices): World {
       daysWithoutFood: 0,
       daysInUnrest: 0,
       rioting: false,
+      mercenaryDesertions: 0,
     },
     policy: {
       taxRate: CONFIG.taxBaselineRate,

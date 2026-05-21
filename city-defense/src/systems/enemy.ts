@@ -8,6 +8,7 @@ import { CONFIG } from '../data/config.ts';
 import { nextInt } from '../engine/rng.ts';
 import { findPath } from '../world/pathfinding.ts';
 import { getBuildingAt, inBounds } from '../world/tilemap.ts';
+import { effectiveBuff } from '../world/world.ts';
 
 // Daily check: spawn any wave whose day matches the current world day.
 export function spawnWavesDay(world: World): void {
@@ -201,7 +202,7 @@ function tryAttackBuilding(world: World, enemy: Enemy, buildingId: EntityId): vo
   const b = world.components.building.map.get(buildingId);
   if (!hp || !b) return;
   // wallHpPct buffs the *target*; enemies see a tougher wall.
-  const wallBuff = 1 + (world.general.buff.wallHpPct ?? 0) / 100;
+  const wallBuff = 1 + effectiveBuff(world, 'wallHpPct') / 100;
   const damage = Math.max(1, def.wallDamage - Math.floor((hp.max * (wallBuff - 1)) / 50));
   hp.hp -= damage;
   if (hp.hp <= 0) {

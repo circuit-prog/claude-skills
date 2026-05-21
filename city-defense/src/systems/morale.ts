@@ -1,4 +1,5 @@
 import type { World } from '../world/world.ts';
+import { effectiveBuff } from '../world/world.ts';
 import { each, getComponent } from '../ecs/store.ts';
 import { buildingDef } from '../data/buildings.ts';
 import { CONFIG } from '../data/config.ts';
@@ -75,7 +76,7 @@ export function updateMoraleDay(world: World): MoraleBreakdown {
 export function updateRevoltDay(world: World): void {
   if (world.gameOver) return;
   const morale = world.population.morale;
-  const delta = world.general.buff.revoltThresholdDelta ?? 0;
+  const delta = effectiveBuff(world, 'revoltThresholdDelta');
   const revoltAt = CONFIG.revoltThreshold + delta;
 
   if (morale < CONFIG.unrestThreshold) world.population.daysInUnrest += 1;
