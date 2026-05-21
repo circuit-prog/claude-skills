@@ -1,4 +1,4 @@
-import type { World, SpeedSetting } from '../world/world.ts';
+import type { SpeedSetting } from '../world/world.ts';
 
 export interface PointerState {
   x: number;            // canvas pixel coords
@@ -27,7 +27,7 @@ const DRAG_THRESHOLD_PX = 4;
 
 export interface BindOptions {
   canvas: HTMLCanvasElement;
-  world: World;
+  getSpeed: () => SpeedSetting;
   onPan(dxScreen: number, dyScreen: number): void;
   onZoom(deltaPx: number, anchorX: number, anchorY: number): void;
   onClick(canvasX: number, canvasY: number): void;
@@ -35,7 +35,7 @@ export interface BindOptions {
 }
 
 export function bindInput(input: InputState, opts: BindOptions): () => void {
-  const { canvas, world, onPan, onZoom, onClick, onSpeed } = opts;
+  const { canvas, getSpeed, onPan, onZoom, onClick, onSpeed } = opts;
 
   const onPointerDown = (e: PointerEvent) => {
     input.pointer.down = true;
@@ -83,7 +83,7 @@ export function bindInput(input: InputState, opts: BindOptions): () => void {
     switch (e.key) {
       case ' ':
         e.preventDefault();
-        onSpeed(world.speed === 0 ? 1 : 0);
+        onSpeed(getSpeed() === 0 ? 1 : 0);
         break;
       case '1': onSpeed(1); break;
       case '2': onSpeed(2); break;

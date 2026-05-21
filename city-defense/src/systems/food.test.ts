@@ -8,6 +8,7 @@ import { CONFIG } from '../data/config.ts';
 const SETUP: SetupChoices = {
   seed: 1,
   general: { id: 't', name: 'T', buff: {} },
+  army: {},
 };
 
 function newWorld(seed = 1) {

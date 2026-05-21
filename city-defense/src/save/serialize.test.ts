@@ -13,6 +13,7 @@ const SETUP: SetupChoices = {
     name: 'Test General',
     buff: { attackPct: 10 },
   },
+  army: {},
 };
 
 function makeFreshWorld() {
