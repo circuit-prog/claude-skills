@@ -2,8 +2,8 @@ import type { World } from '../world/world.ts';
 import type { Camera } from './camera.ts';
 import { resizeCamera, fitZoomFor } from './camera.ts';
 import {
-  drawTerrain, drawGrid, drawBuildings, drawSoldiers, drawEnemies,
-  drawHoverTile, drawDistrictLabels, drawCompassRose,
+  drawTerrain, drawGrid, drawCityDecorations, drawBuildings,
+  drawSoldiers, drawEnemies, drawHoverTile, drawDistrictLabels, drawCompassRose,
 } from './layers.ts';
 
 export interface RenderContext {
@@ -64,6 +64,7 @@ export function render(rc: RenderContext, world: World): void {
     ctx.translate(-cam.cx, -cam.cy);
 
     drawTerrain(ctx, world, cam);
+    drawCityDecorations(ctx, world, cam);
     drawGrid(ctx, cam);
     drawDistrictLabels(ctx, cam);
     drawBuildings(ctx, world, cam);

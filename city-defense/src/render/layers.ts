@@ -22,6 +22,100 @@ const TERRAIN_COLORS: Record<Terrain, string> = {
   farmland: '#b0a058',
 };
 
+// ─── City decoration layer ─────────────────────────────────────────────────
+//
+// The placed-building entities (keep, walls, civic buildings, farms) are the
+// gameplay layer — they have HP, can be attacked, can be built. To match the
+// dense medieval-map look, we paint hundreds of tiny non-gameplay houses on
+// top of every empty city-zone tile. Stable seed per tile so the pattern
+// doesn't shimmer between frames.
+
+interface CityZone {
+  xMin: number; xMax: number; yMin: number; yMax: number;
+  density: number;     // 0..1 — controls how many roofs per tile
+}
+
+const CITY_ZONES: CityZone[] = [
+  // The walled core (Middle Town / The Brooks / Dark Hall) — densest
+  { xMin: 32, xMax: 48, yMin: 22, yMax: 38, density: 1.0 },
+  // The Brooks sprawl outside the west wall
+  { xMin: 20, xMax: 31, yMin: 22, yMax: 38, density: 0.75 },
+  // Middle Town sprawl outside the east wall (before the farms start)
+  { xMin: 49, xMax: 53, yMin: 22, yMax: 38, density: 0.75 },
+  // Northern Slums — between river and the city
+  { xMin: 28, xMax: 52, yMin: 5, yMax: 21, density: 0.55 },
+  // Dark Hall / Southern Slums — south of the wall
+  { xMin: 28, xMax: 52, yMin: 39, yMax: 50, density: 0.55 },
+  { xMin: 30, xMax: 50, yMin: 51, yMax: 56, density: 0.3 },
+];
+
+function cityZoneFor(x: number, y: number): CityZone | null {
+  for (const z of CITY_ZONES) {
+    if (x >= z.xMin && x <= z.xMax && y >= z.yMin && y <= z.yMax) return z;
+  }
+  return null;
+}
+
+// Roof palette — dark slate-blues and browns matching the inspiration.
+const ROOF_COLORS = ['#2a2a3a', '#33282a', '#3a3024', '#262430', '#2a1c1c', '#382e26'];
+
+export function drawCityDecorations(ctx: CanvasRenderingContext2D, world: World, cam: Camera): void {
+  // Skip when too zoomed-out — at 2px-per-tile every roof would be one pixel
+  // and the visual just becomes noise. Below 0.3 zoom we hide the layer.
+  if (cam.zoom < 0.3) return;
+  const ts = CONFIG.tileSize;
+  const { x0, y0, x1, y1 } = visibleTileBounds(cam);
+
+  for (let y = y0; y <= y1; y++) {
+    for (let x = x0; x <= x1; x++) {
+      const zone = cityZoneFor(x, y);
+      if (!zone) continue;
+      const tIdx = tileIndex(world.tilemap, x, y);
+      const terrain = world.tilemap.terrain[tIdx]!;
+      // Decorations only sit on grass/dirt — let roads and water show through.
+      if (terrain !== 'grass' && terrain !== 'dirt') continue;
+      // Skip tiles occupied by a real (gameplay) building.
+      if (world.tilemap.buildingAt[tIdx] !== null) continue;
+
+      drawTileRoofs(ctx, x, y, ts, zone.density);
+    }
+  }
+}
+
+function drawTileRoofs(ctx: CanvasRenderingContext2D, tx: number, ty: number, ts: number, density: number): void {
+  // Tile-coord seeded LCG so the same tile draws the same roofs every frame.
+  let seed = ((tx * 73856093) ^ (ty * 19349663)) >>> 0;
+  const rand = () => {
+    seed = ((seed * 1664525 + 1013904223) >>> 0);
+    return seed / 0x1_0000_0000;
+  };
+
+  // Faint parchment wash so the city tiles read as a slightly lighter
+  // base under the dense roof clusters — mimics the inspiration's
+  // cream-coloured city footprint against the dark-green countryside.
+  ctx.fillStyle = 'rgba(220, 200, 160, 0.12)';
+  ctx.fillRect(tx * ts, ty * ts, ts, ts);
+
+  const count = Math.floor(4 + density * 7);
+  const px = tx * ts;
+  const py = ty * ts;
+
+  for (let i = 0; i < count; i++) {
+    // Mostly small roofs (3–5 px), occasional larger ones (up to 7).
+    const bw = 3 + Math.floor(rand() * (rand() < 0.85 ? 3 : 5));
+    const bh = 3 + Math.floor(rand() * (rand() < 0.85 ? 3 : 5));
+    const bx = px + 1 + Math.floor(rand() * Math.max(1, ts - bw - 2));
+    const by = py + 1 + Math.floor(rand() * Math.max(1, ts - bh - 2));
+
+    ctx.fillStyle = ROOF_COLORS[Math.floor(rand() * ROOF_COLORS.length)]!;
+    ctx.fillRect(bx, by, bw, bh);
+
+    // Sunlit ridge along the top so the rooflets read as 3D.
+    ctx.fillStyle = 'rgba(200, 170, 130, 0.32)';
+    ctx.fillRect(bx, by, bw, 1);
+  }
+}
+
 // Building draws are dispatched per-kind in drawBuildings; this colour table
 // only feeds the under-construction outline.
 const BUILDING_OUTLINE_COLORS: Record<BuildingKind, string> = {
