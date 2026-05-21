@@ -36,6 +36,9 @@ interface SerializedWorld {
 
   requests: World['requests'];
   activeEvents: World['activeEvents'];
+  firedMilestones: string[];
+  pendingMilestoneId: string | null;
+  reliefUnlocked: boolean;
   gameOver?: World['gameOver'];
 }
 
@@ -93,6 +96,9 @@ function serialize(w: World): SerializedWorld {
 
     requests: w.requests.map((r) => ({ ...r })),
     activeEvents: w.activeEvents.map((e) => ({ ...e })),
+    firedMilestones: [...w.firedMilestones],
+    pendingMilestoneId: w.pendingMilestoneId,
+    reliefUnlocked: w.reliefUnlocked,
     ...(w.gameOver ? { gameOver: { ...w.gameOver } } : {}),
   };
 }
@@ -130,6 +136,9 @@ function deserialize(s: SerializedWorld, target: World): World {
 
   target.requests = s.requests.map((r) => ({ ...r }));
   target.activeEvents = s.activeEvents.map((e) => ({ ...e }));
+  target.firedMilestones = [...s.firedMilestones];
+  target.pendingMilestoneId = s.pendingMilestoneId;
+  target.reliefUnlocked = s.reliefUnlocked;
   if (s.gameOver) target.gameOver = { ...s.gameOver };
   else delete target.gameOver;
   return target;

@@ -1,6 +1,6 @@
 import type { SaveEnvelope } from './serialize.ts';
 
-export const CURRENT_SAVE_VERSION = 4;
+export const CURRENT_SAVE_VERSION = 5;
 
 type Migrator = (e: SaveEnvelope) => SaveEnvelope;
 
@@ -44,6 +44,14 @@ const MIGRATIONS: Record<number, Migrator> = {
     const w = env.world as unknown as { population?: Record<string, unknown> };
     const pop = w.population;
     if (pop && pop['mercenaryDesertions'] === undefined) pop['mercenaryDesertions'] = 0;
+    return env;
+  },
+  // 4 → 5: Phase 8 added milestone tracking + relief flag on the World.
+  4: (env) => {
+    const w = env.world as unknown as Record<string, unknown>;
+    if (!Array.isArray(w['firedMilestones'])) w['firedMilestones'] = [];
+    if (w['pendingMilestoneId'] === undefined) w['pendingMilestoneId'] = null;
+    if (w['reliefUnlocked'] === undefined) w['reliefUnlocked'] = false;
     return env;
   },
 };
