@@ -4,6 +4,7 @@ import { advanceConstruction } from './construction.ts';
 import { produceResourcesTick, consumeFoodDay } from './food.ts';
 import { collectTaxesDay } from './economy.ts';
 import { updateHomelessDay } from './population.ts';
+import { processSoldierUpkeepDay } from './recruitment.ts';
 import { updateNotablesDay } from './notables.ts';
 import { advanceRequestsDay } from './requests.ts';
 import { updateMoraleDay, updateRevoltDay } from './morale.ts';
@@ -35,6 +36,10 @@ export function simulate(world: World): void {
     updateHomelessDay(world);
     consumeFoodDay(world);
     collectTaxesDay(world);
+    // Soldier upkeep runs after taxes (so the gold collected today can
+    // pay today's wages) and before morale (so any low-treasury desertion
+    // shows up in the day's army readouts).
+    processSoldierUpkeepDay(world);
     updateNotablesDay(world);
     advanceRequestsDay(world);
     updateMoraleDay(world);

@@ -51,6 +51,14 @@ export const CONFIG = {
   rangedRange: 4,                    // crossbow / tower
   soldierEngageRange: 5,             // sally hunting radius
 
+  // Recruitment + mercenary economics
+  peasantLevyGoldCost: 5,            // gold per conscript
+  mercenaryStartingLoyalty: 55,      // vs ~80 for regular troops
+  mercenaryDesertGoldThreshold: 50,
+  mercenaryDesertGoldChance: 0.12,
+  mercenaryDesertMoraleThreshold: 30,
+  mercenaryDesertMoraleChance: 0.05,
+
   // Starting resources (overridden by general buff + army composition)
   startingFood: 400,
   startingGold: 500,
