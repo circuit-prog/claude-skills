@@ -14,6 +14,8 @@ import { mountSetupScreen } from './setup/setupScreen.ts';
 import { placeBuilding, placeStartingWalls } from './systems/construction.ts';
 import { spawnStartingArmy } from './systems/recruitment.ts';
 import { acceptRequest, declineRequest } from './systems/requests.ts';
+import { reassignDuties } from './systems/duties.ts';
+import { forceStartSiege } from './systems/siege.ts';
 import { generateNotables } from './ecs/notables.ts';
 import { simulate as runTick } from './systems/simulate.ts';
 import { buildingDef } from './data/buildings.ts';
@@ -134,6 +136,16 @@ hud = mountHud(hudRoot, {
     refreshHud();
   },
   declineRequest: (id) => { declineRequest(world, id); refreshHud(); },
+  reassignDuty: (from, to, count) => {
+    const moved = reassignDuties(world, from, to, count);
+    if (moved === 0) flashStatus(`No ${from} soldiers to reassign.`);
+    refreshHud();
+  },
+  forceStartSiege: () => {
+    forceStartSiege(world);
+    flashStatus('The siege begins.');
+    refreshHud();
+  },
   saveGame: () => { saveTo(SLOT_QUICK, world); flashStatus('Saved.'); },
   loadGame: () => {
     if (loadInto(SLOT_QUICK, world)) {

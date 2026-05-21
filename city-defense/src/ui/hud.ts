@@ -1,5 +1,5 @@
 import type { World, SpeedSetting } from '../world/world.ts';
-import type { BuildingKind } from '../ecs/components.ts';
+import type { BuildingKind, DutyKind } from '../ecs/components.ts';
 import { BUILDABLE_KINDS, buildingDef } from '../data/buildings.ts';
 import { daysOfFoodRemaining } from '../systems/food.ts';
 import { housingCapacity } from '../systems/population.ts';
@@ -7,6 +7,9 @@ import { mountNotablesPanel } from './notablesPanel.ts';
 import type { NotablesPanel } from './notablesPanel.ts';
 import { mountRequestInbox } from './requestInbox.ts';
 import type { RequestInbox } from './requestInbox.ts';
+import { mountDutiesPanel } from './dutiesPanel.ts';
+import type { DutiesPanel } from './dutiesPanel.ts';
+import { totalEnemies } from '../systems/enemy.ts';
 
 export interface HudCallbacks {
   setSpeed(speed: SpeedSetting): void;
@@ -15,6 +18,8 @@ export interface HudCallbacks {
   setRationing(r: World['policy']['rationing']): void;
   acceptRequest(id: string): void;
   declineRequest(id: string): void;
+  reassignDuty(from: DutyKind, to: DutyKind, count: number): void;
+  forceStartSiege(): void;
   saveGame(): void;
   loadGame(): boolean;
 }
@@ -93,8 +98,12 @@ export function mountHud(root: HTMLElement, cb: HudCallbacks): Hud {
   status.body.append(statusLines);
 
   const notablesPanel: NotablesPanel = mountNotablesPanel();
+  const dutiesPanel: DutiesPanel = mountDutiesPanel({
+    reassign: (from, to, count) => cb.reassignDuty(from, to, count),
+    startSiege: () => cb.forceStartSiege(),
+  });
 
-  left.append(buildMenu.root, policy.root, status.root, notablesPanel.root);
+  left.append(buildMenu.root, policy.root, dutiesPanel.root, status.root, notablesPanel.root);
 
   const requestInbox: RequestInbox = mountRequestInbox({
     onAccept: (id) => cb.acceptRequest(id),
@@ -153,6 +162,8 @@ export function mountHud(root: HTMLElement, cb: HudCallbacks): Hud {
       else if (world.population.daysInUnrest > 0) statusBits.push(`Unrest day ${world.population.daysInUnrest}`);
       if (world.population.daysWithoutFood > 0) statusBits.push(`<span style="color:#e08060">Hungry for ${world.population.daysWithoutFood}d</span>`);
       if (world.population.starvationDeaths > 0) statusBits.push(`Dead from starvation: ${world.population.starvationDeaths}`);
+      const enemies = totalEnemies(world);
+      if (enemies > 0) statusBits.push(`<span style="color:#e06060">Enemies on map: ${enemies}</span>`);
       statusBits.push(`Season: ${world.season}`);
       statusLines.innerHTML = statusBits.join('<br>');
 
@@ -161,6 +172,7 @@ export function mountHud(root: HTMLElement, cb: HudCallbacks): Hud {
 
       notablesPanel.update(world);
       requestInbox.update(world);
+      dutiesPanel.update(world);
     },
   };
 }

@@ -1,7 +1,7 @@
 import type { World } from '../world/world.ts';
 import type { Camera } from './camera.ts';
 import { resizeCamera } from './camera.ts';
-import { drawTerrain, drawGrid, drawBuildings, drawHoverTile } from './layers.ts';
+import { drawTerrain, drawGrid, drawBuildings, drawSoldiers, drawEnemies, drawHoverTile } from './layers.ts';
 
 export interface RenderContext {
   canvas: HTMLCanvasElement;
@@ -44,6 +44,8 @@ export function render(rc: RenderContext, world: World): void {
   drawTerrain(ctx, world, cam);
   drawGrid(ctx, cam);
   drawBuildings(ctx, world, cam);
+  drawSoldiers(ctx, world, cam);
+  drawEnemies(ctx, world, cam);
   if (rc.hoverTile) {
     drawHoverTile(ctx, cam, rc.hoverTile.x, rc.hoverTile.y, rc.hoverTile.valid);
   }

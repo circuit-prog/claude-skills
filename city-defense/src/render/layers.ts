@@ -4,7 +4,7 @@ import { visibleTileBounds } from './camera.ts';
 import { CONFIG } from '../data/config.ts';
 import { tileIndex } from '../world/tilemap.ts';
 import type { Terrain } from '../world/tilemap.ts';
-import type { BuildingKind } from '../ecs/components.ts';
+import type { BuildingKind, DutyKind, UnitKind } from '../ecs/components.ts';
 import { each, getComponent } from '../ecs/store.ts';
 
 const TERRAIN_COLORS: Record<Terrain, string> = {
@@ -93,6 +93,81 @@ export function drawBuildings(ctx: CanvasRenderingContext2D, world: World, cam: 
       ctx.strokeRect(px + 3, py + 3, ts - 6, ts - 6);
     }
   });
+}
+
+const SOLDIER_DUTY_COLORS: Record<DutyKind, string> = {
+  reserve:   '#5a90c0',
+  wall:      '#3070b0',
+  gatehouse: '#3070b0',
+  sally:     '#80a0d0',
+  watch:     '#c0a050',
+};
+
+const SOLDIER_RANK_BAR: Record<UnitKind, string> = {
+  'peasant-levy': '#9a8e74',
+  spearman:       '#b0c0d0',
+  crossbowman:    '#a0e0a0',
+  'men-at-arms':  '#e0d060',
+  knight:         '#e08040',
+  mercenary:      '#a07060',
+};
+
+export function drawSoldiers(ctx: CanvasRenderingContext2D, world: World, cam: Camera): void {
+  const ts = CONFIG.tileSize;
+  const { x0, y0, x1, y1 } = visibleTileBounds(cam);
+  for (const [id, soldier] of world.components.soldier.map) {
+    const pos = getComponent(world.components.position, id);
+    if (!pos) continue;
+    if (pos.x < x0 - 1 || pos.x > x1 + 1 || pos.y < y0 - 1 || pos.y > y1 + 1) continue;
+    const duty = getComponent(world.components.duty, id);
+    const hp = getComponent(world.components.health, id);
+
+    const px = pos.x * ts + 8;
+    const py = pos.y * ts + 8;
+    const size = ts - 16;
+
+    // Soldier square colored by duty.
+    ctx.fillStyle = SOLDIER_DUTY_COLORS[duty?.kind ?? 'reserve'];
+    ctx.fillRect(px, py, size, size);
+
+    // Rank stripe along the top.
+    ctx.fillStyle = SOLDIER_RANK_BAR[soldier.unit];
+    ctx.fillRect(px, py, size, 3);
+
+    if (hp && hp.hp < hp.max) drawHpBar(ctx, px, py + size + 1, size, hp.hp / hp.max);
+  }
+}
+
+export function drawEnemies(ctx: CanvasRenderingContext2D, world: World, cam: Camera): void {
+  const ts = CONFIG.tileSize;
+  const { x0, y0, x1, y1 } = visibleTileBounds(cam);
+  for (const [id] of world.components.enemy.map) {
+    const pos = getComponent(world.components.position, id);
+    if (!pos) continue;
+    if (pos.x < x0 - 1 || pos.x > x1 + 1 || pos.y < y0 - 1 || pos.y > y1 + 1) continue;
+    const hp = getComponent(world.components.health, id);
+    const cx = pos.x * ts + ts / 2;
+    const cy = pos.y * ts + ts / 2;
+    const r = ts / 2 - 6;
+
+    ctx.fillStyle = '#a02020';
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#400808';
+    ctx.lineWidth = 1.5 / cam.zoom;
+    ctx.stroke();
+
+    if (hp && hp.hp < hp.max) drawHpBar(ctx, cx - r, cy + r + 1, r * 2, hp.hp / hp.max);
+  }
+}
+
+function drawHpBar(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, frac: number): void {
+  const h = 2;
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = frac > 0.5 ? '#80c080' : frac > 0.25 ? '#d4a050' : '#e06060';
+  ctx.fillRect(x, y, w * frac, h);
 }
 
 export function drawHoverTile(
