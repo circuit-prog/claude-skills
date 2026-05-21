@@ -11,6 +11,7 @@ import { updateMoraleDay, updateRevoltDay } from './morale.ts';
 import { maybeStartSiege } from './siege.ts';
 import { spawnWavesDay, advanceEnemiesTick } from './enemy.ts';
 import { advanceSoldiersTick } from './military.ts';
+import { maybeFireMilestoneDay } from './milestones.ts';
 import { evaluateEndConditions } from './victory.ts';
 
 // One simulation tick. The loop calls this at CONFIG.tickMs cadence.
@@ -27,18 +28,16 @@ export function simulate(world: World): void {
   advanceSoldiersTick(world);
 
   if (dayRolled) {
-    // Order: siege phase flip → wave spawn → housing → food → economy →
-    // notables (loyalty drift + amplifiers) → requests (so morale/loyalty
-    // changes from request fulfilment land in the same day's morale
-    // recompute) → morale → revolt → victory.
+    // Order: milestone (act-break narration + scripted triggers like the
+    // relief morale boost) → siege flip → wave spawn → housing → food →
+    // economy → upkeep/desertion → notables → requests → morale → revolt
+    // → victory.
+    maybeFireMilestoneDay(world);
     maybeStartSiege(world);
     spawnWavesDay(world);
     updateHomelessDay(world);
     consumeFoodDay(world);
     collectTaxesDay(world);
-    // Soldier upkeep runs after taxes (so the gold collected today can
-    // pay today's wages) and before morale (so any low-treasury desertion
-    // shows up in the day's army readouts).
     processSoldierUpkeepDay(world);
     updateNotablesDay(world);
     advanceRequestsDay(world);

@@ -16,6 +16,7 @@ import { spawnStartingArmy, conscriptPeasants, hireMercenaries } from './systems
 import { acceptRequest, declineRequest } from './systems/requests.ts';
 import { reassignDuties } from './systems/duties.ts';
 import { forceStartSiege } from './systems/siege.ts';
+import { maybeFireMilestoneDay } from './systems/milestones.ts';
 import { generateNotables } from './ecs/notables.ts';
 import { simulate as runTick } from './systems/simulate.ts';
 import { buildingDef } from './data/buildings.ts';
@@ -65,6 +66,10 @@ function applySetup(choices: SetupChoices): World {
   placeStartingWalls(w, choices.general.buff.startingWallSegments ?? 0);
   spawnStartingArmy(w, choices.army);
   generateNotables(w, choices.general.buff.startingNotables ?? 0);
+  // Fire any Day-1 milestones now so the opening banner shows on the first
+  // frame. The simulate loop only catches milestones via day rollover, so
+  // the starting day needs an explicit pass.
+  maybeFireMilestoneDay(w);
   return w;
 }
 

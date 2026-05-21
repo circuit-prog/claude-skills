@@ -9,6 +9,7 @@ import { nextInt } from '../engine/rng.ts';
 import { findPath } from '../world/pathfinding.ts';
 import { getBuildingAt, inBounds } from '../world/tilemap.ts';
 import { effectiveBuff } from '../world/world.ts';
+import { enemyMoraleMultiplier } from './milestones.ts';
 
 // Daily check: spawn any wave whose day matches the current world day.
 export function spawnWavesDay(world: World): void {
@@ -203,7 +204,8 @@ function tryAttackBuilding(world: World, enemy: Enemy, buildingId: EntityId): vo
   if (!hp || !b) return;
   // wallHpPct buffs the *target*; enemies see a tougher wall.
   const wallBuff = 1 + effectiveBuff(world, 'wallHpPct') / 100;
-  const damage = Math.max(1, def.wallDamage - Math.floor((hp.max * (wallBuff - 1)) / 50));
+  const reliefMult = enemyMoraleMultiplier(world);   // 0.6 after relief sighted
+  const damage = Math.max(1, Math.round((def.wallDamage - Math.floor((hp.max * (wallBuff - 1)) / 50)) * reliefMult));
   hp.hp -= damage;
   if (hp.hp <= 0) {
     hp.hp = 0;
