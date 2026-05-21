@@ -22,18 +22,20 @@ const TERRAIN_COLORS: Record<Terrain, string> = {
   farmland: '#b0a058',
 };
 
-const BUILDING_COLORS: Record<BuildingKind, string> = {
-  keep:      '#8a3a3a',
-  house:     '#a07050',
-  farm:      '#b09040',
-  warehouse: '#806040',
-  wall:      '#606060',
-  tower:     '#7a7a7a',
-  gatehouse: '#9a9a9a',
-  barracks:  '#6a5a5a',
-  tavern:    '#a04030',
-  chapel:    '#c0a070',
-  market:    '#a08050',
+// Building draws are dispatched per-kind in drawBuildings; this colour table
+// only feeds the under-construction outline.
+const BUILDING_OUTLINE_COLORS: Record<BuildingKind, string> = {
+  keep:      '#a09080',
+  house:     '#c0a080',
+  farm:      '#a08050',
+  warehouse: '#8a6840',
+  wall:      '#8a8a80',
+  tower:     '#9a9a90',
+  gatehouse: '#9a9a90',
+  barracks:  '#8a8068',
+  tavern:    '#9a7050',
+  chapel:    '#d0c8a8',
+  market:    '#a08868',
 };
 
 export function drawTerrain(ctx: CanvasRenderingContext2D, world: World, cam: Camera): void {
@@ -118,27 +120,348 @@ export function drawBuildings(ctx: CanvasRenderingContext2D, world: World, cam: 
     const px = pos.x * ts;
     const py = pos.y * ts;
 
+    if (building.state === 'ruined') { drawRubble(ctx, px, py, ts); return; }
+
     if (building.state === 'planned' || building.state === 'building') {
       ctx.fillStyle = 'rgba(255,255,255,0.15)';
       ctx.fillRect(px + 2, py + 2, ts - 4, ts - 4);
-      ctx.strokeStyle = '#d4a050';
+      ctx.strokeStyle = BUILDING_OUTLINE_COLORS[building.kind];
       ctx.lineWidth = 1.5 / cam.zoom;
       ctx.strokeRect(px + 2, py + 2, ts - 4, ts - 4);
       return;
     }
 
-    ctx.fillStyle = BUILDING_COLORS[building.kind];
-    ctx.fillRect(px + 3, py + 3, ts - 6, ts - 6);
-
-    ctx.fillStyle = 'rgba(0,0,0,0.4)';
-    ctx.fillRect(px + 3, py + ts - 8, ts - 6, 5);
+    drawByKind(ctx, building.kind, px, py, ts);
 
     if (building.state === 'damaged') {
-      ctx.strokeStyle = '#d04040';
+      ctx.strokeStyle = '#e06040';
       ctx.lineWidth = 1.5 / cam.zoom;
-      ctx.strokeRect(px + 3, py + 3, ts - 6, ts - 6);
+      ctx.strokeRect(px + 2, py + 2, ts - 4, ts - 4);
     }
   });
+}
+
+function drawByKind(ctx: CanvasRenderingContext2D, kind: BuildingKind, px: number, py: number, ts: number): void {
+  switch (kind) {
+    case 'house':     return drawHouse(ctx, px, py, ts);
+    case 'farm':      return drawFarm(ctx, px, py, ts);
+    case 'warehouse': return drawWarehouse(ctx, px, py, ts);
+    case 'wall':      return drawWall(ctx, px, py, ts);
+    case 'tower':     return drawTower(ctx, px, py, ts);
+    case 'gatehouse': return drawGatehouse(ctx, px, py, ts);
+    case 'barracks':  return drawBarracks(ctx, px, py, ts);
+    case 'tavern':    return drawTavern(ctx, px, py, ts);
+    case 'chapel':    return drawChapel(ctx, px, py, ts);
+    case 'market':    return drawMarket(ctx, px, py, ts);
+    case 'keep':      return drawKeep(ctx, px, py, ts);
+  }
+}
+
+// Each building is rendered as a small medieval shape inside its tile. The
+// shapes are simple geometry so they read clearly even when zoomed out, and
+// hint at function (cross for chapel, banner for barracks, awnings for
+// market, gate for gatehouse, etc.).
+
+function drawHouse(ctx: CanvasRenderingContext2D, px: number, py: number, ts: number): void {
+  const x = px + 5, y = py + 5, w = ts - 10, h = ts - 10;
+  // Wattle-and-daub walls
+  ctx.fillStyle = '#c0a080';
+  ctx.fillRect(x, y + h * 0.45, w, h * 0.55);
+  // Steep thatch / tile roof
+  ctx.fillStyle = '#7a3a28';
+  ctx.beginPath();
+  ctx.moveTo(x - 1, y + h * 0.45);
+  ctx.lineTo(x + w / 2, y - 1);
+  ctx.lineTo(x + w + 1, y + h * 0.45);
+  ctx.closePath();
+  ctx.fill();
+  // Door
+  ctx.fillStyle = '#3a1a10';
+  ctx.fillRect(x + w * 0.42, y + h * 0.7, w * 0.18, h * 0.3);
+  // Outline so it pops on dark terrain
+  ctx.strokeStyle = '#3a201a';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y + h * 0.45, w, h * 0.55);
+}
+
+function drawFarm(ctx: CanvasRenderingContext2D, px: number, py: number, ts: number): void {
+  const x = px + 3, y = py + 3, w = ts - 6, h = ts - 6;
+  // Plowed earth base
+  ctx.fillStyle = '#9a7048';
+  ctx.fillRect(x, y, w, h);
+  // Crop rows
+  ctx.strokeStyle = '#5a3818';
+  ctx.lineWidth = 1;
+  for (let i = 3; i < w; i += 4) {
+    ctx.beginPath();
+    ctx.moveTo(x + i, y);
+    ctx.lineTo(x + i, y + h);
+    ctx.stroke();
+  }
+  // Outline
+  ctx.strokeStyle = '#3a2010';
+  ctx.strokeRect(x, y, w, h);
+}
+
+function drawWarehouse(ctx: CanvasRenderingContext2D, px: number, py: number, ts: number): void {
+  const x = px + 3, y = py + 3, w = ts - 6, h = ts - 6;
+  // Big wooden building
+  ctx.fillStyle = '#8a6840';
+  ctx.fillRect(x, y, w, h);
+  // Roof strip along the top
+  ctx.fillStyle = '#5a3820';
+  ctx.fillRect(x, y, w, h * 0.18);
+  // Large double door
+  ctx.fillStyle = '#2a1a10';
+  ctx.fillRect(x + w * 0.28, y + h * 0.35, w * 0.44, h * 0.65);
+  // Hinge strips
+  ctx.fillStyle = '#5a3820';
+  ctx.fillRect(x + w * 0.28, y + h * 0.35, 2, h * 0.65);
+  ctx.fillRect(x + w * 0.72 - 2, y + h * 0.35, 2, h * 0.65);
+  // Outline
+  ctx.strokeStyle = '#2a1a10';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, w, h);
+}
+
+function drawWall(ctx: CanvasRenderingContext2D, px: number, py: number, ts: number): void {
+  const x = px + 2, y = py + 2, w = ts - 4, h = ts - 4;
+  // Stone block
+  ctx.fillStyle = '#9a948a';
+  ctx.fillRect(x, y, w, h);
+  // Crenellation strip top and bottom
+  ctx.fillStyle = '#5a544a';
+  const merlonW = w / 8;
+  for (let i = 0; i < 4; i++) {
+    const mx = x + i * (w / 4);
+    ctx.fillRect(mx, y - 1, merlonW, 4);
+    ctx.fillRect(mx, y + h - 3, merlonW, 4);
+  }
+  // Outline
+  ctx.strokeStyle = '#3a342a';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, w, h);
+}
+
+function drawTower(ctx: CanvasRenderingContext2D, px: number, py: number, ts: number): void {
+  const x = px + 2, y = py + 2, w = ts - 4, h = ts - 4;
+  // Tower base, slightly darker than walls
+  ctx.fillStyle = '#a8a298';
+  ctx.fillRect(x, y, w, h);
+  // Battlements all around
+  ctx.fillStyle = '#5a544a';
+  const merlonW = w / 10;
+  for (let i = 0; i < 5; i++) {
+    const mx = x + i * (w / 5);
+    ctx.fillRect(mx, y - 1, merlonW, 4);
+    ctx.fillRect(mx, y + h - 3, merlonW, 4);
+  }
+  for (let i = 0; i < 5; i++) {
+    const my = y + i * (h / 5);
+    ctx.fillRect(x - 1, my, 4, merlonW);
+    ctx.fillRect(x + w - 3, my, 4, merlonW);
+  }
+  // Inner courtyard
+  ctx.fillStyle = '#6a5a48';
+  ctx.fillRect(x + w * 0.3, y + h * 0.3, w * 0.4, h * 0.4);
+  // Flag pole + pennant
+  ctx.fillStyle = '#3a2818';
+  ctx.fillRect(x + w / 2 - 1, y + h * 0.25, 2, h * 0.5);
+  ctx.fillStyle = '#c04040';
+  ctx.beginPath();
+  ctx.moveTo(x + w / 2, y + h * 0.28);
+  ctx.lineTo(x + w / 2 + 5, y + h * 0.32);
+  ctx.lineTo(x + w / 2, y + h * 0.36);
+  ctx.closePath();
+  ctx.fill();
+  // Outline
+  ctx.strokeStyle = '#3a342a';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, w, h);
+}
+
+function drawGatehouse(ctx: CanvasRenderingContext2D, px: number, py: number, ts: number): void {
+  const x = px + 2, y = py + 2, w = ts - 4, h = ts - 4;
+  // Two flanking towers
+  ctx.fillStyle = '#a8a298';
+  ctx.fillRect(x, y, w * 0.3, h);
+  ctx.fillRect(x + w * 0.7, y, w * 0.3, h);
+  // Gate (dark archway between)
+  ctx.fillStyle = '#2a1a10';
+  ctx.fillRect(x + w * 0.3, y + h * 0.15, w * 0.4, h * 0.85);
+  // Portcullis bars
+  ctx.strokeStyle = '#5a4630';
+  ctx.lineWidth = 1;
+  for (let i = 1; i < 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo(x + w * 0.3 + i * (w * 0.4 / 4), y + h * 0.15);
+    ctx.lineTo(x + w * 0.3 + i * (w * 0.4 / 4), y + h);
+    ctx.stroke();
+  }
+  // Battlements on the two towers
+  ctx.fillStyle = '#5a544a';
+  ctx.fillRect(x, y - 1, w * 0.06, 4);
+  ctx.fillRect(x + w * 0.12, y - 1, w * 0.06, 4);
+  ctx.fillRect(x + w * 0.24, y - 1, w * 0.06, 4);
+  ctx.fillRect(x + w * 0.7, y - 1, w * 0.06, 4);
+  ctx.fillRect(x + w * 0.82, y - 1, w * 0.06, 4);
+  ctx.fillRect(x + w * 0.94, y - 1, w * 0.06, 4);
+  // Outline
+  ctx.strokeStyle = '#3a342a';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, w, h);
+}
+
+function drawBarracks(ctx: CanvasRenderingContext2D, px: number, py: number, ts: number): void {
+  const x = px + 4, y = py + 4, w = ts - 8, h = ts - 8;
+  // Stout walls
+  ctx.fillStyle = '#8a8068';
+  ctx.fillRect(x, y, w, h);
+  // Crimson banner across the top
+  ctx.fillStyle = '#a04030';
+  ctx.fillRect(x, y, w, h * 0.22);
+  // Three narrow windows in a row
+  ctx.fillStyle = '#3a2a18';
+  const winW = w * 0.15, winH = h * 0.28;
+  for (let i = 0; i < 3; i++) {
+    ctx.fillRect(x + (w - 3 * winW) / 4 + i * (winW + (w - 3 * winW) / 4), y + h * 0.5, winW, winH);
+  }
+  // Outline
+  ctx.strokeStyle = '#3a2818';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, w, h);
+}
+
+function drawTavern(ctx: CanvasRenderingContext2D, px: number, py: number, ts: number): void {
+  const x = px + 5, y = py + 5, w = ts - 10, h = ts - 10;
+  // Honey-coloured timber walls
+  ctx.fillStyle = '#b08858';
+  ctx.fillRect(x, y + h * 0.4, w, h * 0.6);
+  // Brown roof
+  ctx.fillStyle = '#5a3820';
+  ctx.beginPath();
+  ctx.moveTo(x - 1, y + h * 0.4);
+  ctx.lineTo(x + w / 2, y - 1);
+  ctx.lineTo(x + w + 1, y + h * 0.4);
+  ctx.closePath();
+  ctx.fill();
+  // Wide door
+  ctx.fillStyle = '#2a1a10';
+  ctx.fillRect(x + w * 0.3, y + h * 0.55, w * 0.4, h * 0.45);
+  // Sign hanging off the side
+  ctx.fillStyle = '#3a281a';
+  ctx.fillRect(x + w - 2, y + h * 0.5, 1, h * 0.18);
+  ctx.fillStyle = '#c0a050';
+  ctx.fillRect(x + w - 1, y + h * 0.55, 5, 6);
+  // Outline
+  ctx.strokeStyle = '#3a201a';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y + h * 0.4, w, h * 0.6);
+}
+
+function drawChapel(ctx: CanvasRenderingContext2D, px: number, py: number, ts: number): void {
+  const x = px + 5, y = py + 4, w = ts - 10, h = ts - 8;
+  // Pale stone walls
+  ctx.fillStyle = '#d8d0b0';
+  ctx.fillRect(x, y + h * 0.45, w, h * 0.55);
+  // Steep dark roof
+  ctx.fillStyle = '#5a2828';
+  ctx.beginPath();
+  ctx.moveTo(x - 1, y + h * 0.45);
+  ctx.lineTo(x + w / 2, y + h * 0.05);
+  ctx.lineTo(x + w + 1, y + h * 0.45);
+  ctx.closePath();
+  ctx.fill();
+  // Spire
+  ctx.fillStyle = '#5a2828';
+  ctx.fillRect(x + w / 2 - 1, y - 2, 2, h * 0.2);
+  // Cross
+  ctx.fillStyle = '#f0e4c8';
+  ctx.fillRect(x + w / 2 - 0.5, y - 4, 1.5, 5);
+  ctx.fillRect(x + w / 2 - 2, y - 2, 5, 1.5);
+  // Tall arched door
+  ctx.fillStyle = '#2a1a10';
+  ctx.fillRect(x + w * 0.42, y + h * 0.62, w * 0.16, h * 0.38);
+  // Outline
+  ctx.strokeStyle = '#3a302a';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y + h * 0.45, w, h * 0.55);
+}
+
+function drawMarket(ctx: CanvasRenderingContext2D, px: number, py: number, ts: number): void {
+  const x = px + 3, y = py + 4, w = ts - 6, h = ts - 8;
+  // Open paved court
+  ctx.fillStyle = '#a08868';
+  ctx.fillRect(x, y, w, h);
+  // Three coloured awning strips
+  const awningH = h * 0.35;
+  const colors = ['#c04040', '#3a70a0', '#c0a040'];
+  for (let i = 0; i < 3; i++) {
+    ctx.fillStyle = colors[i]!;
+    ctx.fillRect(x + i * (w / 3), y, w / 3 - 1, awningH);
+  }
+  // Stall posts
+  ctx.fillStyle = '#5a3820';
+  for (let i = 0; i <= 3; i++) {
+    ctx.fillRect(x + i * (w / 3) - 1, y + awningH, 2, h - awningH);
+  }
+  // Outline
+  ctx.strokeStyle = '#3a2818';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, w, h);
+}
+
+function drawKeep(ctx: CanvasRenderingContext2D, px: number, py: number, ts: number): void {
+  const x = px + 1, y = py + 1, w = ts - 2, h = ts - 2;
+  // Castle outer wall
+  ctx.fillStyle = '#a89c88';
+  ctx.fillRect(x, y, w, h);
+  // Battlements outer
+  ctx.fillStyle = '#5a4f40';
+  const merlonW = w / 8;
+  for (let i = 0; i < 4; i++) {
+    const mx = x + i * (w / 4);
+    ctx.fillRect(mx, y - 1, merlonW, 4);
+    ctx.fillRect(mx, y + h - 3, merlonW, 4);
+  }
+  // Four corner towers
+  ctx.fillStyle = '#807060';
+  const tw = w * 0.22;
+  ctx.fillRect(x, y, tw, tw);
+  ctx.fillRect(x + w - tw, y, tw, tw);
+  ctx.fillRect(x, y + h - tw, tw, tw);
+  ctx.fillRect(x + w - tw, y + h - tw, tw, tw);
+  // Central donjon
+  ctx.fillStyle = '#6a5640';
+  const dw = w * 0.36;
+  ctx.fillRect(x + w / 2 - dw / 2, y + h / 2 - dw / 2, dw, dw);
+  // Flagpole + crimson banner on the donjon
+  ctx.fillStyle = '#2a1a10';
+  ctx.fillRect(x + w / 2 - 1, y + h * 0.15, 2, h * 0.35);
+  ctx.fillStyle = '#c04040';
+  ctx.beginPath();
+  ctx.moveTo(x + w / 2, y + h * 0.18);
+  ctx.lineTo(x + w / 2 + 6, y + h * 0.23);
+  ctx.lineTo(x + w / 2, y + h * 0.28);
+  ctx.closePath();
+  ctx.fill();
+  // Outer outline
+  ctx.strokeStyle = '#2a1a10';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(x, y, w, h);
+}
+
+function drawRubble(ctx: CanvasRenderingContext2D, px: number, py: number, _ts: number): void {
+  ctx.fillStyle = '#5a4838';
+  ctx.fillRect(px + 6, py + 6, 4, 4);
+  ctx.fillRect(px + 14, py + 9, 5, 4);
+  ctx.fillRect(px + 22, py + 6, 3, 3);
+  ctx.fillRect(px + 8, py + 18, 5, 5);
+  ctx.fillRect(px + 18, py + 20, 4, 4);
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fillRect(px + 7, py + 7, 1, 1);
+  ctx.fillRect(px + 16, py + 11, 1, 1);
+  ctx.fillRect(px + 10, py + 20, 1, 1);
 }
 
 const SOLDIER_DUTY_COLORS: Record<DutyKind, string> = {

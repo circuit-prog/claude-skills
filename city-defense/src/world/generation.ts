@@ -98,12 +98,13 @@ function paintRoads(map: Tilemap): void {
   // West road through the inner town.
   for (let x = 2; x <= keepX; x++) setTerrain(map, x, keepY, 'road');
 
-  // South-east diagonal road (Light Garden).
-  for (let s = 0; s < 18; s++) {
+  // South-east diagonal road (Light Garden) — starts outside the wall ring
+  // so the inner streets stay clean for buildings.
+  for (let s = 7; s < 7 + 14; s++) {
     setTerrain(map, keepX + s, keepY + s, 'road');
   }
   // South-west diagonal (Darkgate).
-  for (let s = 0; s < 16; s++) {
+  for (let s = 7; s < 7 + 14; s++) {
     setTerrain(map, keepX - s, keepY + s, 'road');
   }
 }

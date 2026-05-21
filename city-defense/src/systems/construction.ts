@@ -82,3 +82,107 @@ export function placeStartingWalls(world: World, segments: number): void {
     placeBuilding(world, 'wall', left + i, top, { instant: true, freeOfCost: true });
   }
 }
+
+// Pre-build a full medieval city around the keep — the player inherits a
+// living, defended town instead of an empty field. Layout: square wall ring
+// at radius 6 with corner towers and 4 gatehouses at the road crossings,
+// houses + civic buildings inside, farms in the eastern strip, slum houses
+// to the north and south.
+const CITY_RADIUS = 6;
+
+export function placeStartingCity(world: World): void {
+  const cx = Math.floor(CONFIG.mapWidth / 2);
+  const cy = Math.floor(CONFIG.mapHeight / 2);
+  const R = CITY_RADIUS;
+
+  placePerimeter(world, cx, cy, R);
+  placeInnerBuildings(world, cx, cy);
+  placeFarmsAndSlums(world, cx, cy);
+}
+
+function placePerimeter(world: World, cx: number, cy: number, R: number): void {
+  // Top and bottom edges
+  for (let x = cx - R; x <= cx + R; x++) {
+    const isCorner = x === cx - R || x === cx + R;
+    const isNorthGate = x === cx || x === cx - 1;
+    if (isCorner) continue;                // towers placed last
+    if (isNorthGate) {
+      placeBuilding(world, 'gatehouse', x, cy - R, { instant: true, freeOfCost: true });
+      placeBuilding(world, 'gatehouse', x, cy + R, { instant: true, freeOfCost: true });
+    } else {
+      placeBuilding(world, 'wall', x, cy - R, { instant: true, freeOfCost: true });
+      placeBuilding(world, 'wall', x, cy + R, { instant: true, freeOfCost: true });
+    }
+  }
+  // Left and right edges
+  for (let y = cy - R + 1; y < cy + R; y++) {
+    if (y === cy) {
+      placeBuilding(world, 'gatehouse', cx - R, y, { instant: true, freeOfCost: true });
+      placeBuilding(world, 'gatehouse', cx + R, y, { instant: true, freeOfCost: true });
+    } else {
+      placeBuilding(world, 'wall', cx - R, y, { instant: true, freeOfCost: true });
+      placeBuilding(world, 'wall', cx + R, y, { instant: true, freeOfCost: true });
+    }
+  }
+  // Corner towers
+  placeBuilding(world, 'tower', cx - R, cy - R, { instant: true, freeOfCost: true });
+  placeBuilding(world, 'tower', cx + R, cy - R, { instant: true, freeOfCost: true });
+  placeBuilding(world, 'tower', cx - R, cy + R, { instant: true, freeOfCost: true });
+  placeBuilding(world, 'tower', cx + R, cy + R, { instant: true, freeOfCost: true });
+}
+
+function placeInnerBuildings(world: World, cx: number, cy: number): void {
+  // Houses scattered through the 4 quadrants, avoiding the road tiles
+  // (col cx-1 and cx are the north-south road; row cy is the east-west).
+  const inner: Array<[number, number, 'house' | 'tavern' | 'chapel' | 'market' | 'barracks']> = [
+    // NW quadrant
+    [cx - 5, cy - 5, 'house'], [cx - 3, cy - 5, 'house'],
+    [cx - 5, cy - 3, 'house'], [cx - 3, cy - 3, 'house'],
+    [cx - 4, cy - 2, 'tavern'],
+    [cx - 5, cy - 1, 'house'], [cx - 3, cy - 1, 'house'],
+    // NE quadrant
+    [cx + 2, cy - 5, 'house'], [cx + 4, cy - 5, 'house'],
+    [cx + 2, cy - 3, 'house'], [cx + 4, cy - 3, 'house'],
+    [cx + 3, cy - 2, 'chapel'],
+    [cx + 2, cy - 1, 'house'], [cx + 4, cy - 1, 'house'],
+    // SW quadrant
+    [cx - 5, cy + 1, 'house'], [cx - 3, cy + 1, 'house'],
+    [cx - 4, cy + 2, 'barracks'],
+    [cx - 5, cy + 3, 'house'], [cx - 3, cy + 3, 'house'],
+    [cx - 5, cy + 5, 'house'], [cx - 3, cy + 5, 'house'],
+    // SE quadrant
+    [cx + 2, cy + 1, 'house'], [cx + 4, cy + 1, 'house'],
+    [cx + 3, cy + 2, 'market'],
+    [cx + 2, cy + 3, 'house'], [cx + 4, cy + 3, 'house'],
+    [cx + 2, cy + 5, 'house'], [cx + 4, cy + 5, 'house'],
+  ];
+  for (const [x, y, kind] of inner) {
+    placeBuilding(world, kind, x, y, { instant: true, freeOfCost: true });
+  }
+}
+
+function placeFarmsAndSlums(world: World, cx: number, cy: number): void {
+  // Eastern orchards / farmland — 8 farms in a tidy block.
+  for (let dy = -4; dy <= 4; dy += 2) {
+    for (let dx = 14; dx <= 18; dx += 2) {
+      placeBuilding(world, 'farm', cx + dx, cy + dy, { instant: true, freeOfCost: true });
+    }
+  }
+  // Northern Slums — sparse houses outside the wall, between river and city.
+  const north: Array<[number, number]> = [
+    [cx - 4, cy - 18], [cx - 2, cy - 19], [cx, cy - 20],
+    [cx + 2, cy - 19], [cx + 4, cy - 18], [cx - 3, cy - 15],
+    [cx + 3, cy - 15], [cx, cy - 14],
+  ];
+  for (const [x, y] of north) {
+    placeBuilding(world, 'house', x, y, { instant: true, freeOfCost: true });
+  }
+  // Southern Slums — a smaller cluster.
+  const south: Array<[number, number]> = [
+    [cx - 3, cy + 16], [cx, cy + 17], [cx + 3, cy + 16],
+    [cx - 4, cy + 19], [cx + 4, cy + 19],
+  ];
+  for (const [x, y] of south) {
+    placeBuilding(world, 'house', x, y, { instant: true, freeOfCost: true });
+  }
+}

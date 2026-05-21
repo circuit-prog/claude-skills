@@ -11,7 +11,7 @@ import { mountHud } from './ui/hud.ts';
 import type { Hud } from './ui/hud.ts';
 import { mountGameOver } from './ui/gameOver.ts';
 import { mountSetupScreen } from './setup/setupScreen.ts';
-import { placeBuilding, placeStartingWalls } from './systems/construction.ts';
+import { placeBuilding, placeStartingWalls, placeStartingCity } from './systems/construction.ts';
 import { spawnStartingArmy, conscriptPeasants, hireMercenaries } from './systems/recruitment.ts';
 import { acceptRequest, declineRequest } from './systems/requests.ts';
 import { reassignDuties } from './systems/duties.ts';
@@ -64,6 +64,10 @@ function applySetup(choices: SetupChoices): World {
   const keepX = Math.floor(CONFIG.mapWidth / 2);
   const keepY = Math.floor(CONFIG.mapHeight / 2);
   placeBuilding(w, 'keep', keepX, keepY, { instant: true, freeOfCost: true });
+  // The city already exists — player inherits walls, gatehouses, houses,
+  // civic buildings, farms, and slum sprawl. They still need to bolster
+  // defences and manage food/morale, but they don't start from scratch.
+  placeStartingCity(w);
   placeStartingWalls(w, choices.general.buff.startingWallSegments ?? 0);
   spawnStartingArmy(w, choices.army);
   generateNotables(w, choices.general.buff.startingNotables ?? 0);
