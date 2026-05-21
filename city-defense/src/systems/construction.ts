@@ -4,6 +4,7 @@ import { setComponent, getComponent, each } from '../ecs/store.ts';
 import type { BuildingKind, Building } from '../ecs/components.ts';
 import { buildingDef } from '../data/buildings.ts';
 import { getTerrain, getBuildingAt, setBuildingAt, inBounds } from '../world/tilemap.ts';
+import { CONFIG } from '../data/config.ts';
 
 export type PlaceResult =
   | { ok: true; entity: number }
@@ -66,4 +67,18 @@ export function removeBuilding(world: World, id: number): void {
   world.components.position.map.delete(id);
   world.components.building.map.delete(id);
   world.components.health.map.delete(id);
+}
+
+// Pre-place a short wall segment along the north face of the keep's inner
+// perimeter. Triggered by the Wall Engineer's startingWallSegments buff.
+export function placeStartingWalls(world: World, segments: number): void {
+  if (segments <= 0) return;
+  const keepX = Math.floor(CONFIG.mapWidth / 2);
+  const keepY = Math.floor(CONFIG.mapHeight / 2);
+  const RING_RADIUS = 4;
+  const top = keepY - RING_RADIUS;
+  const left = keepX - Math.floor(segments / 2);
+  for (let i = 0; i < segments; i++) {
+    placeBuilding(world, 'wall', left + i, top, { instant: true, freeOfCost: true });
+  }
 }

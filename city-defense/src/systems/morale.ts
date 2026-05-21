@@ -62,9 +62,14 @@ export function updateMoraleDay(world: World): MoraleBreakdown {
 }
 
 // Riot/revolt state machine. Runs on day rollover, after morale update.
+// General's revoltThresholdDelta shifts the revolt floor (Iron Hand: +5,
+// meaning the revolt happens at morale 20 instead of 15 — they tolerate
+// less unrest before surrendering).
 export function updateRevoltDay(world: World): void {
   if (world.gameOver) return;
   const morale = world.population.morale;
+  const delta = world.general.buff.revoltThresholdDelta ?? 0;
+  const revoltAt = CONFIG.revoltThreshold + delta;
 
   if (morale < CONFIG.unrestThreshold) world.population.daysInUnrest += 1;
   else world.population.daysInUnrest = Math.max(0, world.population.daysInUnrest - 1);
@@ -83,8 +88,7 @@ export function updateRevoltDay(world: World): void {
     }
   }
 
-  // Revolt + surrender. Only triggers if a riot has already started.
-  if (world.population.rioting && morale < CONFIG.revoltThreshold) {
+  if (world.population.rioting && morale < revoltAt) {
     world.gameOver = { reason: 'revolt', day: world.day };
   }
 }

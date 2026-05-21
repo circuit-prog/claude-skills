@@ -1,6 +1,7 @@
 import type { World, Season } from '../world/world.ts';
 import { each } from '../ecs/store.ts';
 import { buildingDef } from '../data/buildings.ts';
+import { UNITS } from '../data/units.ts';
 import { CONFIG } from '../data/config.ts';
 
 export function foodStorageCap(world: World): number {
@@ -45,13 +46,20 @@ export interface DailyFoodReport {
 
 // Daily consumption: pop + soldiers eat. Shortfall causes starvation deaths.
 // Rationing policy can halve the per-citizen amount (lowering morale).
+// The general's foodConsumptionPct (Quartermaster: -15%) applies after.
 export function consumeFoodDay(world: World): DailyFoodReport {
   const rationing = world.policy.rationing;
   const citizenRate = rationing === 'half' ? CONFIG.foodPerCitizenPerDay * 0.5 : CONFIG.foodPerCitizenPerDay;
-  const soldierRate = rationing === 'starve-soldiers' ? 0 : CONFIG.foodPerSoldierPerDay;
+  const starveSoldiers = rationing === 'starve-soldiers';
 
-  const soldiers = world.components.soldier.map.size;
-  const required = world.population.total * citizenRate + soldiers * soldierRate;
+  let soldierFood = 0;
+  for (const s of world.components.soldier.map.values()) {
+    if (starveSoldiers) continue;
+    soldierFood += UNITS[s.unit].foodPerDay;
+  }
+
+  const consumptionMult = 1 + (world.general.buff.foodConsumptionPct ?? 0) / 100;
+  const required = (world.population.total * citizenRate + soldierFood) * consumptionMult;
 
   if (world.resources.food >= required) {
     world.resources.food -= required;
@@ -105,9 +113,12 @@ function drainJobs(world: World, deaths: number): void {
 }
 
 export function daysOfFoodRemaining(world: World): number {
-  const soldiers = world.components.soldier.map.size;
-  const required = world.population.total * CONFIG.foodPerCitizenPerDay
-                 + soldiers * CONFIG.foodPerSoldierPerDay;
+  let soldierFood = 0;
+  for (const s of world.components.soldier.map.values()) {
+    soldierFood += UNITS[s.unit].foodPerDay;
+  }
+  const consumptionMult = 1 + (world.general.buff.foodConsumptionPct ?? 0) / 100;
+  const required = (world.population.total * CONFIG.foodPerCitizenPerDay + soldierFood) * consumptionMult;
   if (required <= 0) return Infinity;
   return Math.floor(world.resources.food / required);
 }
