@@ -1,6 +1,6 @@
 import type { SaveEnvelope } from './serialize.ts';
 
-export const CURRENT_SAVE_VERSION = 2;
+export const CURRENT_SAVE_VERSION = 3;
 
 type Migrator = (e: SaveEnvelope) => SaveEnvelope;
 
@@ -18,6 +18,24 @@ const MIGRATIONS: Record<number, Migrator> = {
     if (pop) {
       if (pop['daysInUnrest'] === undefined) pop['daysInUnrest'] = 0;
       if (pop['rioting'] === undefined) pop['rioting'] = false;
+    }
+    return env;
+  },
+  // 2 → 3: Phase 6 added cooldown + path fields on Soldier and Enemy
+  // components. Backfill defaults so older saves still load and animate.
+  2: (env) => {
+    const w = env.world as unknown as { components?: Record<string, Array<[number, Record<string, unknown>]>> };
+    const comps = w.components;
+    if (comps) {
+      for (const [, s] of comps['soldier'] ?? []) {
+        if (s['attackCooldown'] === undefined) s['attackCooldown'] = 0;
+        if (s['moveCooldown'] === undefined) s['moveCooldown'] = 0;
+      }
+      for (const [, e] of comps['enemy'] ?? []) {
+        if (e['attackCooldown'] === undefined) e['attackCooldown'] = 0;
+        if (e['moveCooldown'] === undefined) e['moveCooldown'] = 0;
+        if (!Array.isArray(e['path'])) e['path'] = [];
+      }
     }
     return env;
   },
