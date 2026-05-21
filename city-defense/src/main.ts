@@ -12,7 +12,7 @@ import type { Hud } from './ui/hud.ts';
 import { mountGameOver } from './ui/gameOver.ts';
 import { mountSetupScreen } from './setup/setupScreen.ts';
 import { placeBuilding, placeStartingWalls } from './systems/construction.ts';
-import { spawnStartingArmy } from './systems/recruitment.ts';
+import { spawnStartingArmy, conscriptPeasants, hireMercenaries } from './systems/recruitment.ts';
 import { acceptRequest, declineRequest } from './systems/requests.ts';
 import { reassignDuties } from './systems/duties.ts';
 import { forceStartSiege } from './systems/siege.ts';
@@ -43,6 +43,7 @@ let world: World = createPlaceholderWorld();
 let hud: Hud | null = null;
 let selectedBuilding: BuildingKind | null = null;
 let lastAutosaveDay = world.day;
+let lastSeenDesertions = world.population.mercenaryDesertions;
 let loop: LoopHandles | null = null;
 
 function createPlaceholderWorld(): World {
@@ -96,6 +97,13 @@ const renderFn: RenderFn = (w) => {
     lastAutosaveDay = w.day;
     saveTo(SLOT_AUTOSAVE, w);
   }
+  if (w.population.mercenaryDesertions !== lastSeenDesertions) {
+    const delta = w.population.mercenaryDesertions - lastSeenDesertions;
+    if (delta > 0) {
+      flashStatus(`${delta} mercenar${delta === 1 ? 'y' : 'ies'} deserted!`);
+    }
+    lastSeenDesertions = w.population.mercenaryDesertions;
+  }
   if (w.gameOver) {
     w.speed = 0;
     gameOver.show(w);
@@ -139,6 +147,18 @@ hud = mountHud(hudRoot, {
   reassignDuty: (from, to, count) => {
     const moved = reassignDuties(world, from, to, count);
     if (moved === 0) flashStatus(`No ${from} soldiers to reassign.`);
+    refreshHud();
+  },
+  conscriptPeasants: (count) => {
+    const result = conscriptPeasants(world, count);
+    if (!result.ok) flashStatus(`Can't conscript: ${result.reason}.`);
+    else flashStatus(`+${result.count} levy${result.count === 1 ? '' : 'men'}.`);
+    refreshHud();
+  },
+  hireMercenaries: (count) => {
+    const result = hireMercenaries(world, count);
+    if (!result.ok) flashStatus(`Can't hire: ${result.reason}.`);
+    else flashStatus(`+${result.count} mercenar${result.count === 1 ? 'y' : 'ies'}.`);
     refreshHud();
   },
   forceStartSiege: () => {
@@ -188,6 +208,7 @@ async function startFreshGame(): Promise<void> {
   const choices = await setupScreen.show();
   world = applySetup(choices);
   lastAutosaveDay = world.day;
+  lastSeenDesertions = world.population.mercenaryDesertions;
   deleteSlot(SLOT_AUTOSAVE);
   saveTo(SLOT_AUTOSAVE, world);
   refreshHud();
@@ -200,6 +221,7 @@ function loadExistingGame(): boolean {
   const ok = loadInto(SLOT_AUTOSAVE, world);
   if (!ok) return false;
   lastAutosaveDay = world.day;
+  lastSeenDesertions = world.population.mercenaryDesertions;
   refreshHud();
   loop = createLoop(world, simulate, renderFn);
   loop.start();

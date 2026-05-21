@@ -9,6 +9,8 @@ import { mountRequestInbox } from './requestInbox.ts';
 import type { RequestInbox } from './requestInbox.ts';
 import { mountDutiesPanel } from './dutiesPanel.ts';
 import type { DutiesPanel } from './dutiesPanel.ts';
+import { mountRecruitmentPanel } from './recruitmentPanel.ts';
+import type { RecruitmentPanel } from './recruitmentPanel.ts';
 import { totalEnemies } from '../systems/enemy.ts';
 
 export interface HudCallbacks {
@@ -19,6 +21,8 @@ export interface HudCallbacks {
   acceptRequest(id: string): void;
   declineRequest(id: string): void;
   reassignDuty(from: DutyKind, to: DutyKind, count: number): void;
+  conscriptPeasants(count: number): void;
+  hireMercenaries(count: number): void;
   forceStartSiege(): void;
   saveGame(): void;
   loadGame(): boolean;
@@ -102,8 +106,12 @@ export function mountHud(root: HTMLElement, cb: HudCallbacks): Hud {
     reassign: (from, to, count) => cb.reassignDuty(from, to, count),
     startSiege: () => cb.forceStartSiege(),
   });
+  const recruitmentPanel: RecruitmentPanel = mountRecruitmentPanel({
+    conscript: (n) => cb.conscriptPeasants(n),
+    hireMercenary: (n) => cb.hireMercenaries(n),
+  });
 
-  left.append(buildMenu.root, policy.root, dutiesPanel.root, status.root, notablesPanel.root);
+  left.append(buildMenu.root, policy.root, recruitmentPanel.root, dutiesPanel.root, status.root, notablesPanel.root);
 
   const requestInbox: RequestInbox = mountRequestInbox({
     onAccept: (id) => cb.acceptRequest(id),
@@ -162,6 +170,7 @@ export function mountHud(root: HTMLElement, cb: HudCallbacks): Hud {
       else if (world.population.daysInUnrest > 0) statusBits.push(`Unrest day ${world.population.daysInUnrest}`);
       if (world.population.daysWithoutFood > 0) statusBits.push(`<span style="color:#e08060">Hungry for ${world.population.daysWithoutFood}d</span>`);
       if (world.population.starvationDeaths > 0) statusBits.push(`Dead from starvation: ${world.population.starvationDeaths}`);
+      if (world.population.mercenaryDesertions > 0) statusBits.push(`Mercenary desertions: ${world.population.mercenaryDesertions}`);
       const enemies = totalEnemies(world);
       if (enemies > 0) statusBits.push(`<span style="color:#e06060">Enemies on map: ${enemies}</span>`);
       statusBits.push(`Season: ${world.season}`);
@@ -173,6 +182,7 @@ export function mountHud(root: HTMLElement, cb: HudCallbacks): Hud {
       notablesPanel.update(world);
       requestInbox.update(world);
       dutiesPanel.update(world);
+      recruitmentPanel.update(world);
     },
   };
 }
