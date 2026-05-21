@@ -32,6 +32,13 @@ export interface PopulationPool {
   morale: number;        // 0–100, drives revolt
   starvationDeaths: number;
   daysWithoutFood: number;
+  daysInUnrest: number;
+  rioting: boolean;
+}
+
+export interface PolicyState {
+  taxRate: number;       // %; baseline 10
+  rationing: 'normal' | 'half' | 'starve-soldiers';
 }
 
 export interface ArmyBuff {
@@ -96,6 +103,7 @@ export interface World {
   // Resources
   resources: Resources;
   population: PopulationPool;
+  policy: PolicyState;
 
   // ECS
   entities: EntityAllocator;
@@ -159,6 +167,12 @@ export function createWorld(setup: SetupChoices): World {
       morale: 70,
       starvationDeaths: 0,
       daysWithoutFood: 0,
+      daysInUnrest: 0,
+      rioting: false,
+    },
+    policy: {
+      taxRate: CONFIG.taxBaselineRate,
+      rationing: 'normal',
     },
     entities: createAllocator(),
     components: {
