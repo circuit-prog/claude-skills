@@ -5,6 +5,7 @@ import { CONFIG } from '../data/config.ts';
 import { nextInt } from '../engine/rng.ts';
 import { daysOfFoodRemaining } from './food.ts';
 import { disloyalMoralePenalty } from './notables.ts';
+import { watchMoraleBonus } from './duties.ts';
 
 export interface MoraleBreakdown {
   base: number;
@@ -16,6 +17,7 @@ export interface MoraleBreakdown {
   siege: number;
   ration: number;
   notables: number;
+  watch: number;
   total: number;
 }
 
@@ -49,9 +51,10 @@ export function computeMoraleTarget(world: World): MoraleBreakdown {
                : 0;
 
   const notables = -disloyalMoralePenalty(world);
+  const watch = watchMoraleBonus(world);
 
-  const total = clamp01_100(base + hunger + homeless + taxes + amenities + season + siege + ration + notables);
-  return { base, hunger, homeless, taxes, amenities, season, siege, ration, notables, total };
+  const total = clamp01_100(base + hunger + homeless + taxes + amenities + season + siege + ration + notables + watch);
+  return { base, hunger, homeless, taxes, amenities, season, siege, ration, notables, watch, total };
 }
 
 // Daily smoothing: morale drifts toward the computed target so single bad
