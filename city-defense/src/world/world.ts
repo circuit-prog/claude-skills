@@ -6,7 +6,7 @@ import { createRng } from '../engine/rng.ts';
 import type { ComponentStore, EntityAllocator } from '../ecs/store.ts';
 import { createStore, createAllocator } from '../ecs/store.ts';
 import type {
-  Position, Building, Health, Soldier, Duty, Enemy, Notable,
+  Position, Building, Health, Soldier, Duty, Enemy, Notable, UnitKind,
 } from '../ecs/components.ts';
 import { CONFIG } from '../data/config.ts';
 
@@ -48,13 +48,25 @@ export interface ArmyBuff {
   recruitCostPct?: number;
   mercDiscountPct?: number;
   watchEfficiencyPct?: number;
+  foodConsumptionPct?: number;       // negative = eats less
+  sallySpeedPct?: number;
+  upkeepCostPct?: number;
+  wallHpPct?: number;
+  garrisonStrengthPct?: number;
   startingFoodBonus?: number;
   startingGoldBonus?: number;
+  startingWoodBonus?: number;
+  startingStoneBonus?: number;
+  startingWallSegments?: number;     // pre-placed wall ring radius around keep
+  startingNotables?: number;         // extra notable allies
+  revoltThresholdDelta?: number;     // adds to revoltThreshold (negative = easier to revolt)
 }
 
 export interface GeneralChoice {
   id: string;
   name: string;
+  title?: string;
+  background?: string;
   buff: ArmyBuff;
   drawback?: ArmyBuff;
 }
@@ -125,10 +137,12 @@ export interface World {
   gameOver?: GameOver;
 }
 
+export type ArmyComposition = Partial<Record<UnitKind, number>>;
+
 export interface SetupChoices {
   seed: number;
   general: GeneralChoice;
-  // Starting army composition lands when systems/recruitment.ts arrives.
+  army: ArmyComposition;
 }
 
 export function createWorld(setup: SetupChoices): World {
@@ -136,8 +150,11 @@ export function createWorld(setup: SetupChoices): World {
   const tilemap = createTilemap(CONFIG.mapWidth, CONFIG.mapHeight, 'grass');
   generateTerrain(tilemap, rng);
 
-  const startingFood = CONFIG.startingFood + (setup.general.buff.startingFoodBonus ?? 0);
-  const startingGold = CONFIG.startingGold + (setup.general.buff.startingGoldBonus ?? 0);
+  const buff = setup.general.buff;
+  const startingFood = CONFIG.startingFood + (buff.startingFoodBonus ?? 0);
+  const startingGold = CONFIG.startingGold + (buff.startingGoldBonus ?? 0);
+  const startingWood = CONFIG.startingWood + (buff.startingWoodBonus ?? 0);
+  const startingStone = CONFIG.startingStone + (buff.startingStoneBonus ?? 0);
 
   const world: World = {
     tick: 0,
@@ -154,8 +171,8 @@ export function createWorld(setup: SetupChoices): World {
     resources: {
       food: startingFood,
       gold: startingGold,
-      wood: CONFIG.startingWood,
-      stone: CONFIG.startingStone,
+      wood: startingWood,
+      stone: startingStone,
     },
     population: {
       total: CONFIG.startingPopulation,
