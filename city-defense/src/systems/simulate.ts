@@ -4,6 +4,8 @@ import { advanceConstruction } from './construction.ts';
 import { produceResourcesTick, consumeFoodDay } from './food.ts';
 import { collectTaxesDay } from './economy.ts';
 import { updateHomelessDay } from './population.ts';
+import { updateNotablesDay } from './notables.ts';
+import { advanceRequestsDay } from './requests.ts';
 import { updateMoraleDay, updateRevoltDay } from './morale.ts';
 import { evaluateEndConditions } from './victory.ts';
 
@@ -19,10 +21,14 @@ export function simulate(world: World): void {
   produceResourcesTick(world);
 
   if (dayRolled) {
-    // Order matters: housing → food consumption → economy → morale → revolt → victory.
+    // Order: housing → food → economy → notables (loyalty drift + amplifiers)
+    // → requests (so morale/loyalty changes from request fulfilment land in
+    // the same day's morale recompute) → morale → revolt → victory.
     updateHomelessDay(world);
     consumeFoodDay(world);
     collectTaxesDay(world);
+    updateNotablesDay(world);
+    advanceRequestsDay(world);
     updateMoraleDay(world);
     updateRevoltDay(world);
     evaluateEndConditions(world);
