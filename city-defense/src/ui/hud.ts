@@ -15,6 +15,8 @@ import { mountMilestoneBanner } from './milestoneBanner.ts';
 import type { MilestoneBanner } from './milestoneBanner.ts';
 import { mountProgressBar } from './progressBar.ts';
 import type { ProgressBar } from './progressBar.ts';
+import { mountEventModal } from './eventModal.ts';
+import type { EventModal } from './eventModal.ts';
 import { dismissPendingMilestone } from '../systems/milestones.ts';
 import { totalEnemies } from '../systems/enemy.ts';
 
@@ -29,6 +31,7 @@ export interface HudCallbacks {
   conscriptPeasants(count: number): void;
   hireMercenaries(count: number): void;
   forceStartSiege(): void;
+  chooseEvent(choiceIndex: number): void;
   saveGame(): void;
   loadGame(): boolean;
 }
@@ -132,6 +135,9 @@ export function mountHud(root: HTMLElement, cb: HudCallbacks): Hud {
     },
     () => liveWorld!,
   );
+  const eventModal: EventModal = mountEventModal({
+    onChoose: (idx) => cb.chooseEvent(idx),
+  });
 
   const requestInbox: RequestInbox = mountRequestInbox({
     onAccept: (id) => cb.acceptRequest(id),
@@ -156,7 +162,7 @@ export function mountHud(root: HTMLElement, cb: HudCallbacks): Hud {
     spacer(), saveBtn, loadBtn,
   );
 
-  root.append(bar, progressBar.root, left, requestInbox.root, milestoneBanner.root, controls);
+  root.append(bar, progressBar.root, left, requestInbox.root, milestoneBanner.root, eventModal.root, controls);
 
   return {
     update(world, selected) {
@@ -205,11 +211,13 @@ export function mountHud(root: HTMLElement, cb: HudCallbacks): Hud {
       recruitmentPanel.update(world);
       progressBar.update(world);
 
-      // Auto-pause the world when a milestone banner is up so the player
-      // reads it rather than missing it at 4x speed.
+      // Auto-pause the world when a milestone or event modal is up so the
+      // player reads it rather than missing it at 4x speed.
       liveWorld = world;
-      if (world.pendingMilestoneId && world.speed !== 0) world.speed = 0;
+      const modalActive = world.pendingMilestoneId || world.pendingEventId;
+      if (modalActive && world.speed !== 0) world.speed = 0;
       milestoneBanner.update(world);
+      eventModal.update(world);
     },
   };
 }

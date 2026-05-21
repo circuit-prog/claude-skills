@@ -17,6 +17,7 @@ import { acceptRequest, declineRequest } from './systems/requests.ts';
 import { reassignDuties } from './systems/duties.ts';
 import { forceStartSiege } from './systems/siege.ts';
 import { maybeFireMilestoneDay } from './systems/milestones.ts';
+import { choose as chooseEvent } from './systems/events.ts';
 import { generateNotables } from './ecs/notables.ts';
 import { simulate as runTick } from './systems/simulate.ts';
 import { buildingDef } from './data/buildings.ts';
@@ -169,6 +170,15 @@ hud = mountHud(hudRoot, {
   forceStartSiege: () => {
     forceStartSiege(world);
     flashStatus('The siege begins.');
+    refreshHud();
+  },
+  chooseEvent: (idx) => {
+    const result = chooseEvent(world, idx);
+    if (!result.ok) flashStatus(`Cannot pick: ${result.reason}.`);
+    // Restore speed after the modal closes.
+    if (!world.pendingMilestoneId && !world.pendingEventId && world.speed === 0 && !world.gameOver) {
+      world.speed = 1;
+    }
     refreshHud();
   },
   saveGame: () => { saveTo(SLOT_QUICK, world); flashStatus('Saved.'); },
