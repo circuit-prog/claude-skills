@@ -9,22 +9,30 @@ export interface Camera {
   viewportH: number;
 }
 
-const MIN_ZOOM = 0.4;
+const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 3.0;
 
 export function createCamera(viewportW: number, viewportH: number): Camera {
   const mapPxW = CONFIG.mapWidth * CONFIG.tileSize;
   const mapPxH = CONFIG.mapHeight * CONFIG.tileSize;
-  // Fit-to-viewport zoom so the whole city + outskirts are visible on load.
-  // Player can wheel-zoom in once they pick a build target.
-  const fitZoom = Math.min(viewportW / mapPxW, viewportH / mapPxH) * 0.95;
   return {
     cx: mapPxW / 2,
     cy: mapPxH / 2,
-    zoom: Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, fitZoom)),
+    zoom: fitZoomFor(viewportW, viewportH),
     viewportW,
     viewportH,
   };
+}
+
+// Compute the zoom that fits the whole map in the viewport. If either
+// dimension is non-positive (canvas hasn't been laid out yet) we fall back
+// to zoom=1.0 — the player can wheel-zoom and resize() will re-fit later.
+export function fitZoomFor(viewportW: number, viewportH: number): number {
+  const mapPxW = CONFIG.mapWidth * CONFIG.tileSize;
+  const mapPxH = CONFIG.mapHeight * CONFIG.tileSize;
+  if (viewportW <= 0 || viewportH <= 0) return 1.0;
+  const fit = Math.min(viewportW / mapPxW, viewportH / mapPxH) * 0.95;
+  return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, fit));
 }
 
 export function resizeCamera(cam: Camera, w: number, h: number): void {

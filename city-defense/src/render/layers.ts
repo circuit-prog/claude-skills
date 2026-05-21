@@ -11,14 +11,15 @@ import { DISTRICTS } from '../data/districts.ts';
 // Parchment-toned palette inspired by the hand-drawn city-map look:
 // muted olive grasses, sepia roads, slate-blue water, dark-olive forest,
 // warm-grey stone. Tweak here to recolour the whole map.
+// Brighter palette so the map reads clearly against the dark page bg.
 const TERRAIN_COLORS: Record<Terrain, string> = {
-  grass:    '#5a6a3a',
-  dirt:     '#8a7050',
-  road:     '#b8a280',
-  water:    '#4a6a80',
-  forest:   '#384828',
-  stone:    '#7a7470',
-  farmland: '#8a8a52',
+  grass:    '#7a8a4a',
+  dirt:     '#a08060',
+  road:     '#d4bc8a',
+  water:    '#6a8aa8',
+  forest:   '#4a5a30',
+  stone:    '#9a9488',
+  farmland: '#b0a058',
 };
 
 const BUILDING_COLORS: Record<BuildingKind, string> = {
