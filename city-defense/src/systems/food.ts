@@ -3,6 +3,7 @@ import { each } from '../ecs/store.ts';
 import { buildingDef } from '../data/buildings.ts';
 import { UNITS } from '../data/units.ts';
 import { CONFIG } from '../data/config.ts';
+import { disloyalFoodPenalty } from './notables.ts';
 
 export function foodStorageCap(world: World): number {
   let cap = CONFIG.baseFoodStorageCap;
@@ -59,7 +60,8 @@ export function consumeFoodDay(world: World): DailyFoodReport {
   }
 
   const consumptionMult = 1 + (world.general.buff.foodConsumptionPct ?? 0) / 100;
-  const required = (world.population.total * citizenRate + soldierFood) * consumptionMult;
+  const required = (world.population.total * citizenRate + soldierFood) * consumptionMult
+                 + disloyalFoodPenalty(world);
 
   if (world.resources.food >= required) {
     world.resources.food -= required;

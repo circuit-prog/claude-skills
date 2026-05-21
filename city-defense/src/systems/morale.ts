@@ -4,6 +4,7 @@ import { buildingDef } from '../data/buildings.ts';
 import { CONFIG } from '../data/config.ts';
 import { nextInt } from '../engine/rng.ts';
 import { daysOfFoodRemaining } from './food.ts';
+import { disloyalMoralePenalty } from './notables.ts';
 
 export interface MoraleBreakdown {
   base: number;
@@ -14,6 +15,7 @@ export interface MoraleBreakdown {
   season: number;
   siege: number;
   ration: number;
+  notables: number;
   total: number;
 }
 
@@ -46,8 +48,10 @@ export function computeMoraleTarget(world: World): MoraleBreakdown {
                : world.policy.rationing === 'starve-soldiers' ? -4
                : 0;
 
-  const total = clamp01_100(base + hunger + homeless + taxes + amenities + season + siege + ration);
-  return { base, hunger, homeless, taxes, amenities, season, siege, ration, total };
+  const notables = -disloyalMoralePenalty(world);
+
+  const total = clamp01_100(base + hunger + homeless + taxes + amenities + season + siege + ration + notables);
+  return { base, hunger, homeless, taxes, amenities, season, siege, ration, notables, total };
 }
 
 // Daily smoothing: morale drifts toward the computed target so single bad
