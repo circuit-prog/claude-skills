@@ -1,6 +1,6 @@
 import type { SaveEnvelope } from './serialize.ts';
 
-export const CURRENT_SAVE_VERSION = 5;
+export const CURRENT_SAVE_VERSION = 6;
 
 type Migrator = (e: SaveEnvelope) => SaveEnvelope;
 
@@ -52,6 +52,16 @@ const MIGRATIONS: Record<number, Migrator> = {
     if (!Array.isArray(w['firedMilestones'])) w['firedMilestones'] = [];
     if (w['pendingMilestoneId'] === undefined) w['pendingMilestoneId'] = null;
     if (w['reliefUnlocked'] === undefined) w['reliefUnlocked'] = false;
+    return env;
+  },
+  // 5 → 6: Phase 9 added pendingEventId, eventCooldowns, queuedEvents,
+  // eventLog. All four backfill to empty defaults.
+  5: (env) => {
+    const w = env.world as unknown as Record<string, unknown>;
+    if (w['pendingEventId'] === undefined) w['pendingEventId'] = null;
+    if (typeof w['eventCooldowns'] !== 'object' || w['eventCooldowns'] === null) w['eventCooldowns'] = {};
+    if (!Array.isArray(w['queuedEvents'])) w['queuedEvents'] = [];
+    if (!Array.isArray(w['eventLog'])) w['eventLog'] = [];
     return env;
   },
 };

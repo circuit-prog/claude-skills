@@ -39,6 +39,10 @@ interface SerializedWorld {
   firedMilestones: string[];
   pendingMilestoneId: string | null;
   reliefUnlocked: boolean;
+  pendingEventId: string | null;
+  eventCooldowns: Record<string, number>;
+  queuedEvents: World['queuedEvents'];
+  eventLog: World['eventLog'];
   gameOver?: World['gameOver'];
 }
 
@@ -99,6 +103,10 @@ function serialize(w: World): SerializedWorld {
     firedMilestones: [...w.firedMilestones],
     pendingMilestoneId: w.pendingMilestoneId,
     reliefUnlocked: w.reliefUnlocked,
+    pendingEventId: w.pendingEventId,
+    eventCooldowns: { ...w.eventCooldowns },
+    queuedEvents: w.queuedEvents.map((q) => ({ ...q })),
+    eventLog: w.eventLog.map((e) => ({ ...e })),
     ...(w.gameOver ? { gameOver: { ...w.gameOver } } : {}),
   };
 }
@@ -139,6 +147,10 @@ function deserialize(s: SerializedWorld, target: World): World {
   target.firedMilestones = [...s.firedMilestones];
   target.pendingMilestoneId = s.pendingMilestoneId;
   target.reliefUnlocked = s.reliefUnlocked;
+  target.pendingEventId = s.pendingEventId;
+  target.eventCooldowns = { ...s.eventCooldowns };
+  target.queuedEvents = s.queuedEvents.map((q) => ({ ...q }));
+  target.eventLog = s.eventLog.map((e) => ({ ...e }));
   if (s.gameOver) target.gameOver = { ...s.gameOver };
   else delete target.gameOver;
   return target;
