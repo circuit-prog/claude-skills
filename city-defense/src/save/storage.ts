@@ -15,6 +15,21 @@ export function loadInto(slot: string, world: World): boolean {
   if (!raw) return false;
   try {
     fromJSON(JSON.parse(raw), world);
+    // Sanity-check the loaded world. A save with no population, no tilemap,
+    // or zero map dimensions is almost certainly corrupt (or from a build
+    // where the schema was incompatible). Reject it so the player isn't
+    // dumped into a blank-canvas dead state.
+    if (
+      !world.tilemap ||
+      world.tilemap.width <= 0 || world.tilemap.height <= 0 ||
+      !Array.isArray(world.tilemap.terrain) || world.tilemap.terrain.length === 0 ||
+      !world.resources ||
+      !world.population ||
+      world.population.total <= 0
+    ) {
+      console.warn(`load ${slot}: rejected (corrupt or empty world)`);
+      return false;
+    }
     return true;
   } catch (err) {
     console.error(`load ${slot} failed:`, err);
@@ -37,8 +52,10 @@ export interface AutosaveTriggers {
 // Autosave on day rollover is driven by the simulation loop (caller invokes
 // `saveTo(SLOT_AUTOSAVE, world)` itself). This module wires the *browser*
 // triggers: tab hide and beforeunload.
-export function bindAutosaveTriggers(world: World): AutosaveTriggers {
-  const writeAutosave = () => saveTo(SLOT_AUTOSAVE, world);
+// Takes a getter (not a World ref) because main.ts reassigns `world` when
+// a new game starts — a captured reference would write the stale placeholder.
+export function bindAutosaveTriggers(getWorld: () => World): AutosaveTriggers {
+  const writeAutosave = () => saveTo(SLOT_AUTOSAVE, getWorld());
   const onVisibility = () => { if (document.hidden) writeAutosave(); };
   const onBeforeUnload = () => writeAutosave();
   document.addEventListener('visibilitychange', onVisibility);

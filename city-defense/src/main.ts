@@ -218,7 +218,19 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') { selectedBuilding = null; refreshHud(); }
 });
 
-bindAutosaveTriggers(world);
+bindAutosaveTriggers(() => world);
+
+// Surface any otherwise-silent errors as a status banner. Without this,
+// a throw inside the render loop or applySetup leaves the user staring at
+// a blank canvas with no clue what's wrong.
+window.addEventListener('error', (ev) => {
+  console.error('uncaught error:', ev.error ?? ev.message);
+  flashStatus(`Error: ${ev.message ?? 'unknown'}`);
+});
+window.addEventListener('unhandledrejection', (ev) => {
+  console.error('unhandled rejection:', ev.reason);
+  flashStatus(`Error: ${String(ev.reason)?.slice(0, 100)}`);
+});
 
 async function startFreshGame(): Promise<void> {
   if (loop) loop.stop();
@@ -227,24 +239,36 @@ async function startFreshGame(): Promise<void> {
     const result = await setupScreen.show({ hasResume: hasSave(SLOT_AUTOSAVE) });
     if (result.kind === 'discard-save') {
       deleteSlot(SLOT_AUTOSAVE);
+      deleteSlot(SLOT_QUICK);
       flashStatus('Saved campaign deleted.');
       continue;     // loop back so they can pick new game
     }
     if (result.kind === 'resume') {
       if (loadExistingGame()) return;
-      flashStatus('Could not load saved campaign — start a new game.');
+      // Autosave was unloadable — delete it so the broken slot doesn't keep
+      // teasing the player with a Resume button they can't use.
+      deleteSlot(SLOT_AUTOSAVE);
+      flashStatus('Saved campaign was corrupt — start a new game.');
       continue;
     }
-    // New game with explicit choices.
-    world = applySetup(result.choices);
-    lastAutosaveDay = world.day;
-    lastSeenDesertions = world.population.mercenaryDesertions;
-    deleteSlot(SLOT_AUTOSAVE);
-    saveTo(SLOT_AUTOSAVE, world);
-    refreshHud();
-    loop = createLoop(world, simulate, renderFn);
-    loop.start();
-    return;
+    // New game with explicit choices. Nuke any leftover save state so a
+    // stale autosave can't leak into the new run.
+    try {
+      deleteSlot(SLOT_AUTOSAVE);
+      deleteSlot(SLOT_QUICK);
+      world = applySetup(result.choices);
+      lastAutosaveDay = world.day;
+      lastSeenDesertions = world.population.mercenaryDesertions;
+      saveTo(SLOT_AUTOSAVE, world);
+      refreshHud();
+      loop = createLoop(world, simulate, renderFn);
+      loop.start();
+      return;
+    } catch (err) {
+      console.error('failed to start new game:', err);
+      flashStatus(`Couldn't start: ${err instanceof Error ? err.message : String(err)}`);
+      continue;
+    }
   }
 }
 
