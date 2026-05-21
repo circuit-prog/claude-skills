@@ -1,5 +1,6 @@
 import type { Tilemap } from './tilemap.ts';
 import { createTilemap } from './tilemap.ts';
+import { generateTerrain } from './generation.ts';
 import type { RNG } from '../engine/rng.ts';
 import { createRng } from '../engine/rng.ts';
 import type { ComponentStore, EntityAllocator } from '../ecs/store.ts';
@@ -125,11 +126,12 @@ export interface SetupChoices {
 export function createWorld(setup: SetupChoices): World {
   const rng = createRng(setup.seed);
   const tilemap = createTilemap(CONFIG.mapWidth, CONFIG.mapHeight, 'grass');
+  generateTerrain(tilemap, rng);
 
   const startingFood = CONFIG.startingFood + (setup.general.buff.startingFoodBonus ?? 0);
   const startingGold = CONFIG.startingGold + (setup.general.buff.startingGoldBonus ?? 0);
 
-  return {
+  const world: World = {
     tick: 0,
     day: 1,
     season: 'spring',
@@ -171,4 +173,11 @@ export function createWorld(setup: SetupChoices): World {
     requests: [],
     activeEvents: [],
   };
+
+  // The Keep sits at the centre of the map. Capturing it is loss condition (1).
+  // Terrain under the keep is forced to a buildable tile.
+  const keepX = Math.floor(CONFIG.mapWidth / 2);
+  const keepY = Math.floor(CONFIG.mapHeight / 2);
+  world.tilemap.terrain[keepY * world.tilemap.width + keepX] = 'dirt';
+  return world;
 }
