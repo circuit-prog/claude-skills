@@ -38,11 +38,32 @@ export function attachCanvas(canvas: HTMLCanvasElement, cam: Camera): RenderCont
   requestAnimationFrame(resize);
   window.addEventListener('resize', resize);
 
-  return { canvas, ctx, cam };
+  const rc: RenderContext = { canvas, ctx, cam };
+  // Expose the resize fn so render() can re-sync if dimensions changed
+  // since the last call (catching the case where the canvas had 0 size at
+  // attach time and no 'resize' event fired when layout finally settled).
+  (rc as RenderContextWithResize).__resync = resize;
+  return rc;
+}
+
+interface RenderContextWithResize extends RenderContext {
+  __resync?: () => void;
 }
 
 export function render(rc: RenderContext, world: World): void {
   const { ctx, canvas, cam } = rc;
+  // If the canvas's CSS size has changed since we last sized the backing
+  // store, re-sync. Catches the very common case where the canvas had 0
+  // size at module load (layout not yet computed) and never got a 'resize'
+  // event — leaving canvas.width=0 and render returning early forever.
+  if (
+    canvas.clientWidth > 0 && canvas.clientHeight > 0 &&
+    (canvas.width === 0 ||
+      Math.abs(canvas.clientWidth - cam.viewportW) > 1 ||
+      Math.abs(canvas.clientHeight - cam.viewportH) > 1)
+  ) {
+    (rc as RenderContextWithResize).__resync?.();
+  }
   // Defensive: a 0-size canvas (first render before layout settles) makes
   // dpr = NaN and ctx.scale silently break. Skip until the canvas has size.
   if (canvas.width === 0 || canvas.height === 0 || canvas.clientWidth === 0) {
