@@ -13,6 +13,8 @@ export interface RenderContext {
   hoverTile?: { x: number; y: number; valid: boolean };
 }
 
+let lastRenderErrorAt = -Infinity;
+
 export function attachCanvas(canvas: HTMLCanvasElement, cam: Camera): RenderContext {
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('2D canvas context unavailable');
@@ -84,8 +86,20 @@ export function render(rc: RenderContext, world: World): void {
     drawCompassRose(ctx, cam.viewportW, cam.viewportH);
     ctx.restore();
   } catch (err) {
-    // Don't let a single bad frame kill the loop — log once and keep going.
+    // Don't let a single bad frame kill the loop, but DO surface the error —
+    // a silently-swallowed render exception is how we ended up with a black
+    // canvas and no clue why. Throttle dispatch to once per second so we
+    // don't spam the banner at 60fps if every frame fails.
     console.error('render failed:', err);
+    const now = performance.now();
+    if (now - lastRenderErrorAt > 1000) {
+      lastRenderErrorAt = now;
+      if (typeof window !== 'undefined') {
+        const msg = err instanceof Error ? err.message : String(err);
+        window.dispatchEvent(new ErrorEvent('error', { error: err, message: `render: ${msg}` }));
+      }
+    }
     ctx.restore();
   }
 }
+
